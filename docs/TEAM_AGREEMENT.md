@@ -1,8 +1,10 @@
 # TEAM AGREEMENT - Capstone Design
 
-This document is your **team constitution**.
+**Date:** March 11, 2026
 
-It defines how your team will work together, make decisions, resolve conflicts, and ensure everyone contributes.
+This document is our **team constitution**.
+
+It defines how our team will work together, make decisions, resolve conflicts, and ensure everyone contributes.
 
 Teams that write clear agreements usually avoid most problems later in the semester.
 
@@ -14,20 +16,21 @@ This agreement can be **updated during the semester** if the team agrees and rec
 
 **Team Name**
 
-[Team name here]
+AI Campus Innovators
 
 **Repository**
 
-[GitHub repository link]
+[[GitHub repository link here](https://github.com/CapstoneDesign-Spring2026-UlsanCollege/ai-campus-helper)]
 
 **Members**
 
-| Name | Role Rotation (first week) |
+| Name | Role Rotation (First Week) |
 | --- | --- |
-| | |
-| | |
-| | |
-| | |
+| Laxman Bhattarai | PM |
+| Kushal Kharka | Scribe |
+| Bibek Kunwar | QA Lead |
+| Ujwol Upreti | Demo Driver |
+| Rajim Danwar | Developer |
 
 ---
 
@@ -83,15 +86,16 @@ Our primary communication channels are:
 
 | Tool | Purpose |
 | --- | --- |
-| | |
-| | |
+| KakaoTalk | Team communication |
+| Discord | Meetings and discussion |
+| GitHub Issues | Task management and tracking |
 
 Examples:
 
-- KakaoTalk
-- Discord
-- Slack
-- Email
+- KakaoTalk  
+- Discord  
+- Slack  
+- Email  
 
 ---
 
@@ -109,7 +113,7 @@ Our team agrees to:
 
 Typical team meetings will happen:
 
-[Example: Wednesday after class / online evenings / etc.]
+**Wednesday after class and additional online meetings if needed.**
 
 Meetings should:
 
@@ -123,7 +127,7 @@ Meetings should:
 
 Our team will follow this workflow:
 
-```text
+```
 Issue -> Branch -> Pull Request -> Merge -> Evidence
 ```
 
@@ -144,7 +148,7 @@ The rule is simple:
 
 > If it isn't linked, it didn't happen.
 
-Every student must post **2-3 receipts each week**.
+Every student must post **2–3 receipts each week**.
 
 Examples of receipts:
 
@@ -229,13 +233,13 @@ Possible outcomes:
 
 For most decisions:
 
-```text
+```
 Majority vote
 ```
 
 For major project changes:
 
-```text
+```
 Full team agreement
 ```
 
@@ -257,10 +261,11 @@ By signing, we agree to follow the expectations in this document.
 
 | Name | Signature | Date |
 | --- | --- | --- |
-| | | |
-| | | |
-| | | |
-| | | |
+| Laxman Bhattarai | | March 11, 2026 |
+| Kushal Kharka | | March 11, 2026 |
+| Bibek Kunwar | | March 11, 2026 |
+| Ujwol Upreti | | March 11, 2026 |
+| Rajim Danwar | | March 11, 2026 |
 
 ---
 

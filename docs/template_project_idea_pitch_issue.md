@@ -1,212 +1,122 @@
-<!--
-TEMPLATE - Project Idea Pitch Issue
-
-How to use this template:
-
-1. One team member creates this Issue.
-2. The team fills in all sections together.
-3. Keep answers short and clear.
-4. Link this Issue in your Sprint Packet if the idea changes later.
-
-Purpose:
-- Help the instructor review project ideas early
-- Make sure the project is demoable, feasible, and well scoped
--->
-
 # Project Idea Pitch
 
 ## Team
 
 **Team Name**
 
-[Team name]
+AI Campus Innovators
 
 **Members**
 
-- [Member 1]
-- [Member 2]
-- [Member 3]
-- [Member 4]
+- Laxman Bhattarai
+- Kushal Kharka
+- Bibek Kunwar
+- Ujwol Upreti
+- Rajim Danwar
 
 **Repository (if created)**
 
-[GitHub repository link]
-
+[[GitHub repository link](https://github.com/CapstoneDesign-Spring2026-UlsanCollege/ai-campus-helper)]
 
 ---
 
 # 1. Project Title
 
-[Short project title]
-
-Example:
-
-Campus Study Room Finder
-
+Smart Campus Assistant App
 
 ---
 
 # 2. Problem
 
-Describe the **real problem** your project solves.
-
-Focus on a situation someone experiences.
-
-Example:
-
-> Students often struggle to find available study rooms on campus. Rooms may be empty but still marked as reserved.
-
-Your answer:
-
-[2-4 sentences]
-
+Students often struggle to find important campus information quickly.  
+Class schedules, building locations, food menus, and campus events are usually spread across different systems or websites.  
+This makes it difficult for students to get the information they need quickly.  
+A single application that organizes all this information in one place would make campus life easier.
 
 ---
 
 # 3. Target Users
 
-Who will use this system?
+The main users of the system are:
 
-Examples:
-
-- students
-- teachers
-- small businesses
-- mobile users
-
-Your users:
-
-[Describe the main users]
-
+- College students
+- New students who are unfamiliar with the campus
+- Faculty members who want to check schedules or events
 
 ---
 
 # 4. What the System Will Do
 
-Explain **what the system will allow users to do**.
-
-Example:
-
-> Users can see available study rooms and reserve them for a time slot.
-
-Your description:
-
-[2-4 sentences]
-
+The system will provide a single web or mobile application where students can access important campus information.  
+Users will be able to view their class schedule, find campus buildings, check food menus, and receive event notifications.  
+The app will also include an AI assistant that can answer simple campus-related questions.
 
 ---
 
 # 5. Core Features (First Version)
 
-List **3-5 key features**.
-
-These should be realistic to build in one semester.
-
-Example:
-
-- View available rooms
-- Reserve a room
-- Cancel reservation
-- Show room schedule
-
-Your features:
-
-- [Feature 1]
-- [Feature 2]
-- [Feature 3]
-- [Feature 4]
-- [Feature 5]
+- View class schedules
+- Navigate campus buildings with a simple map
+- Get assignment reminders
+- Check cafeteria food menus
+- Ask questions to an AI assistant
 
 ---
 
 # 6. Demo Scenario
 
-Describe **exactly what will happen during your demo**.
-
-Example:
-
 Step 1  
-User opens the website.
+User opens the Smart Campus Assistant app.
 
 Step 2  
-User views available study rooms.
+User logs in and sees their class schedule on the dashboard.
 
 Step 3  
-User reserves a room.
+User searches for a campus building and views its location.
 
 Step 4  
-Reservation appears on the schedule.
+User asks the AI assistant a question like  
+"Where is the IT building?"
 
-Your demo:
-
-Step 1:
-Step 2:
-Step 3:
-Step 4:
-
+Step 5  
+The system provides the correct location and information.
 
 ---
 
 # 7. Minimum Viable Product (MVP)
 
-Describe the **smallest version of your system that still works**.
-
-Your MVP should:
-
-- demonstrate the core idea
-- be easy to demo
-- be achievable early in the semester
-
-Your MVP:
-
-[Describe the smallest working version]
-
+The MVP will be a simple web application where students can log in and view their class schedule, campus building information, and cafeteria menu.  
+The system will also include a basic AI chatbot that answers common campus questions.  
+This version will demonstrate the main idea of a centralized campus assistant.
 
 ---
 
 # 8. Technology Plan
 
-List the tools you expect to use.
-
 | Area | Tool |
 | --- | --- |
-| Frontend | |
-| Backend | |
-| Database | |
-| Hosting | |
+| Frontend | HTML, CSS, JavaScript |
+| Backend | Node.js / Express |
+| Database | MySQL |
+| Hosting | GitHub / Local Server |
 
 ---
 
 # 9. Risks or Unknowns
 
-List anything that might make the project difficult.
-
-Examples:
-
-- new technology
-- unclear requirements
-- integration challenges
-
-Your risks:
-
-- [Risk 1]
-- [Risk 2]
-- [Risk 3]
+- Integrating an AI assistant into the application
+- Managing campus location and map data
+- Collecting accurate campus information such as schedules and menus
 
 ---
 
 # 10. Scope Check
 
-Confirm that your project is:
+- [x] Demoable  
+- [x] Feasible  
+- [x] Well scoped  
 
-- [ ] Demoable  
-- [ ] Feasible  
-- [ ] Well scoped  
-
-If any of these are uncertain, explain:
-
-[short explanation]
-
+This project focuses on building a simple campus information system with an AI assistant that can be demonstrated within one semester.
 
 ---
 

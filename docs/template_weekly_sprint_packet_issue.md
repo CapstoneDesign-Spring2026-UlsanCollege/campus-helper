@@ -1,38 +1,22 @@
-<!--
-TEMPLATE - Weekly Sprint Packet Issue
-
-How to use this template:
-
-1. The PM (or Scribe) creates this Issue.
-2. The team fills in all sections.
-3. Each student must add a comment with their receipts.
-4. Everything should link to GitHub evidence when possible.
-
-Reminder:
-
-If it isn't linked, it didn't happen.
--->
-
 # Weekly Sprint Packet
 
 ## Team
 
 **Team Name**
 
-[Team name]
+AI Campus Innovators
 
 **Sprint Number**
 
-[example: Sprint 2]
+Sprint 0
 
 **Repository**
 
-[repo link]
+[https://github.com/CapstoneDesign-Spring2026-UlsanCollege/ai-campus-helperGitHub repository link]
 
 **PM for this Sprint**
 
-[name]
-
+Laxman Bhattarai
 
 ---
 
@@ -40,32 +24,36 @@ If it isn't linked, it didn't happen.
 
 Provide a **working demo link or short video**.
 
-[link]
+[Demo link will be added here]
 
+---
 
 ## Demo Script
 
 What will you show during the demo?
 
-Keep it short.
+Step 1:  
+Open the Smart Campus Assistant web application.
 
-Step 1:
-Step 2:
-Step 3:
-Step 4:
+Step 2:  
+Login as a student and access the dashboard.
 
+Step 3:  
+View the class schedule and cafeteria menu.
+
+Step 4:  
+Ask the AI assistant a question such as  
+"Where is the IT building?"
 
 ---
 
 ## Backup Plan
 
-If the live demo fails, what will you show instead?
+If the live demo fails, we will show:
 
-Example:
-
-- recorded demo
-- screenshots
-- fallback branch
+- recorded demo video
+- screenshots of the working system
+- code from the GitHub repository
 
 ---
 
@@ -73,33 +61,39 @@ Example:
 
 Link to your **GitHub Project board**.
 
-[board link]
+[Add GitHub Project Board link]
 
+---
 
 ## Sprint Goal
 
-What was the goal for this sprint?
+The goal of Sprint 0 is to:
+
+- finalize the project idea
+- create the GitHub repository
+- complete project documentation
+- define the project structure and technology stack
 
 ---
 
 ## Current Board State
 
-List the important issues in each column.
-
 ### To Do
 
-- Issue link
-- Issue link
+- Create database schema
+- Design UI layout for dashboard
+- Create campus building data
 
 ### Doing
 
-- Issue link
-- Issue link
+- Set up repository structure
+- Prepare initial frontend pages
 
 ### Done
 
-- Issue link
-- Issue link
+- Team Agreement created
+- Project Idea Pitch completed
+- PROJECT.md documentation created
 
 ---
 
@@ -107,61 +101,47 @@ List the important issues in each column.
 
 ## What Shipped
 
-What actually worked by the end of the sprint?
-
-- [Shipped item 1]
-- [Shipped item 2]
-- [Shipped item 3]
+- GitHub repository created
+- Team agreement document completed
+- Project idea pitch created
+- Project overview documentation written
 
 ---
 
 ## What Broke
 
-Problems encountered this week.
-
-- [Problem 1]
-- [Problem 2]
-- [Problem 3]
+- No technical issues yet because development has just started
+- Some uncertainty about AI assistant integration
 
 ---
 
 ## Next Sprint Plan
 
-What will the team work on next week?
-
-- [Plan item 1]
-- [Plan item 2]
-- [Plan item 3]
+- Build basic frontend pages (login and dashboard)
+- Create database tables
+- Start backend server setup
+- Implement simple campus information display
 
 ---
 
 ## Risks or Blockers
 
-Anything that might slow down the project.
-
-- [Risk 1]
-- [Risk 2]
-- [Risk 3]
+- Learning backend integration with database
+- Integrating AI assistant feature
+- Collecting campus information such as menus and schedules
 
 ---
 
 # Engineering Practice (if required this week)
 
-Describe the engineering practice used this week.
+Engineering practices used this week:
 
-Examples:
-
-- testing
-- CI checks
-- deployment
-- logging
-- performance
-- accessibility
+- Version control using GitHub
+- Documentation-driven development
 
 Evidence:
 
-[link]
-
+[Add repository commit links]
 
 ---
 
@@ -171,8 +151,7 @@ Each team member must **add a comment on this Issue** with their receipts.
 
 Minimum:
 
-2-3 links
-
+2–3 links
 
 Examples of receipts:
 
@@ -189,36 +168,3 @@ Examples of receipts:
 ## Example Receipt Comment
 
 Each student should post a comment like this:
-
-```text
-Contribution Receipts
-
-PR:
-https://github.com/org/repo/pull/12
-
-Issue completed:
-https://github.com/org/repo/issues/9
-
-Review comment:
-https://github.com/org/repo/pull/10#discussion
-```
-
----
-
-# Definition of Done (Quick Check)
-
-Confirm that:
-
-- [ ] Demo works or has backup
-- [ ] Project board is updated
-- [ ] Sprint notes are written
-- [ ] Each member posted receipts
-- [ ] Links are working
-
----
-
-# Instructor Notes (leave blank)
-
-Comments:
-
-Suggestions:

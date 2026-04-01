@@ -1,1 +1,902 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ulsan College Campus Helper - Newcomer's Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- LOGIN MODAL OVERLAY -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-modal" id="loginModal">
+            <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+            <div class="login-header">
+                <div class="login-logo">🎓</div>
+                <h2 class="login-title">Campus Helper</h2>
+                <p class="login-subtitle">Ulsan College Portal</p>
+            </div>
+
+            <div class="login-tabs">
+                <button class="tab-btn active" data-tab="login">Sign In</button>
+                <button class="tab-btn" data-tab="register">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <div class="tab-content active" id="tab-login">
+                <div class="demo-hint">
+                    <span class="hint-icon">💡</span>
+                    Demo: <strong>student001</strong> / <strong>pass1234</strong>
+                </div>
+                <form class="login-form" id="loginForm" novalidate>
+                    <div class="form-group">
+                        <label for="studentId">Student ID</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">👤</span>
+                            <input type="text" id="studentId" placeholder="e.g. student001" autocomplete="username" />
+                        </div>
+                        <span class="field-error" id="studentId-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" />
+                            <button type="button" class="toggle-pw" id="togglePw" aria-label="Show/hide password">
+                                <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                        <span class="field-error" id="password-error"></span>
+                    </div>
+                    <div class="form-row">
+                        <label class="remember-label">
+                            <input type="checkbox" id="rememberMe" />
+                            <span class="checkmark"></span>
+                            Remember me
+                        </label>
+                        <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+                    </div>
+                    <div class="login-error-msg" id="loginErrorMsg"></div>
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-spinner" id="btnSpinner" style="display:none;">⟳</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div class="tab-content" id="tab-register">
+                <form class="login-form" id="registerForm" novalidate>
+                    <div class="form-group">
+                        <label for="regName">Full Name</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">📝</span>
+                            <input type="text" id="regName" placeholder="Your full name" />
+                        </div>
+                        <span class="field-error" id="regName-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="regStudentId">Student ID</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">👤</span>
+                            <input type="text" id="regStudentId" placeholder="Assigned student ID" />
+                        </div>
+                        <span class="field-error" id="regStudentId-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">Email Address</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">✉️</span>
+                            <input type="email" id="regEmail" placeholder="your@email.com" />
+                        </div>
+                        <span class="field-error" id="regEmail-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="regDept">Department</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🏫</span>
+                            <select id="regDept">
+                                <option value="">Select your department</option>
+                                <option>Computer Engineering</option>
+                                <option>Business Administration</option>
+                                <option>Architecture</option>
+                                <option>Mechanical Engineering</option>
+                                <option>Nursing</option>
+                                <option>Social Welfare</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <span class="field-error" id="regDept-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPw">New Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="regPw" placeholder="Minimum 8 characters" />
+                        </div>
+                        <div class="pw-strength" id="pwStrength">
+                            <div class="strength-bar"><span id="strengthFill"></span></div>
+                            <span id="strengthLabel">Strength</span>
+                        </div>
+                        <span class="field-error" id="regPw-error"></span>
+                    </div>
+                    <div class="register-error-msg" id="registerErrorMsg"></div>
+                    <button type="submit" class="login-btn" id="registerBtn">Create Account</button>
+                </form>
+            </div>
+
+            <!-- Forgot Password Screen -->
+            <div class="tab-content" id="tab-forgot">
+                <p class="forgot-desc">Enter your registered email and we'll send you a reset link.</p>
+                <form class="login-form" id="forgotForm" novalidate>
+                    <div class="form-group">
+                        <label for="resetEmail">Email Address</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">✉️</span>
+                            <input type="email" id="resetEmail" placeholder="your@email.com" />
+                        </div>
+                        <span class="field-error" id="resetEmail-error"></span>
+                    </div>
+                    <div class="forgot-msg" id="forgotMsg"></div>
+                    <button type="submit" class="login-btn">Send Reset Link</button>
+                    <button type="button" class="back-btn" id="backToLogin">← Back to Sign In</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎓</span>
+                <span class="logo-text">Campus Helper</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#quick-info" class="nav-link">Quick Info</a></li>
+                <li><a href="#buildings" class="nav-link">Buildings</a></li>
+                <li><a href="#schedule" class="nav-link">Schedule</a></li>
+                <li><a href="#canteen" class="nav-link">Canteen</a></li>
+                <li><a href="#facilities" class="nav-link">Facilities</a></li>
+                <li><a href="#contacts" class="nav-link">Contacts</a></li>
+                <li><a href="#tips" class="nav-link">Tips</a></li>
+            </ul>
+            <div class="nav-actions">
+                <div class="user-area" id="userArea" style="display:none;">
+                    <span class="user-greeting" id="userGreeting"></span>
+                    <button class="logout-btn" id="logoutBtn">Logout</button>
+                </div>
+                <button class="login-nav-btn" id="loginNavBtn">Sign In</button>
+                <button class="hamburger" id="hamburger" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-bg-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-badge">Spring 2026 · Newcomer's Guide</div>
+            <h1>Welcome to<br><span class="hero-accent">Ulsan College</span></h1>
+            <p>Your complete guide to campus life — buildings, schedules, dining, and everything you need to thrive.</p>
+            <div class="hero-buttons">
+                <button class="cta-button" onclick="document.getElementById('quick-info').scrollIntoView({behavior: 'smooth'})">
+                    Start Exploring
+                </button>
+                <button class="cta-button cta-outline" id="heroLoginBtn">
+                    Student Portal
+                </button>
+            </div>
+        </div>
+        <div class="hero-stats">
+            <div class="stat-item"><span class="stat-num">6+</span><span class="stat-lbl">Buildings</span></div>
+            <div class="stat-divider"></div>
+            <div class="stat-item"><span class="stat-num">6</span><span class="stat-lbl">Dining Spots</span></div>
+            <div class="stat-divider"></div>
+            <div class="stat-item"><span class="stat-num">100K+</span><span class="stat-lbl">Library Books</span></div>
+        </div>
+    </section>
+
+    <!-- Quick Information Section -->
+    <section id="quick-info" class="section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Overview</div>
+                <h2>Quick Campus Information</h2>
+                <p class="section-desc">Everything you need to know at a glance</p>
+            </div>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-icon">📍</div>
+                    <h3>Campus Address</h3>
+                    <p><strong>Main Campus:</strong><br>
+                    University-ro 93, Dong-gu, Ulsan,<br>
+                    South Korea 44610</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">📞</div>
+                    <h3>Main Numbers</h3>
+                    <p><strong>Main Reception:</strong> +82-52-2XX-XXXX<br>
+                    <strong>Admissions:</strong> +82-52-2XX-XXXX<br>
+                    <strong>Student Services:</strong> +82-52-2XX-XXXX</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">⏰</div>
+                    <h3>Campus Hours</h3>
+                    <p><strong>Weekdays:</strong> 08:00 - 21:00<br>
+                    <strong>Weekends:</strong> 09:00 - 18:00<br>
+                    <strong>Holidays:</strong> Check Academic Calendar</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">📅</div>
+                    <h3>Academic Calendar</h3>
+                    <p><strong>Spring Semester:</strong> Mar - Jun<br>
+                    <strong>Fall Semester:</strong> Sep - Dec<br>
+                    <strong>Vacation:</strong> Jan-Feb, Jul-Aug</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Buildings Guide Section -->
+    <section id="buildings" class="section section-alt">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Campus Map</div>
+                <h2>Campus Buildings Guide</h2>
+                <p class="section-desc">Navigate every building with confidence</p>
+            </div>
+            <div class="building-grid">
+                <div class="building-card">
+                    <div class="building-icon">🏫</div>
+                    <h3>Academic Building A</h3>
+                    <p class="building-info"><strong>Location:</strong> Main Campus Center &nbsp;|&nbsp; <strong>Floors:</strong> 8 (2 Basement) &nbsp;|&nbsp; <strong>Built:</strong> 1995</p>
+                    <div class="floor-layout">
+                        <h4>Floor Layout</h4>
+                        <ul>
+                            <li><span class="floor-badge">B2</span> Parking, Storage</li>
+                            <li><span class="floor-badge">B1</span> Laboratory Rooms (A101-A110)</li>
+                            <li><span class="floor-badge">1F</span> Main Entrance, Reception (A201-A210)</li>
+                            <li><span class="floor-badge">2–7F</span> Lecture Halls (A301-A720)</li>
+                            <li><span class="floor-badge">8F</span> Faculty Offices, Conference Room</li>
+                        </ul>
+                    </div>
+                    <p class="building-capacity">Capacity: 2,000+ students</p>
+                </div>
+
+                <div class="building-card">
+                    <div class="building-icon">🏫</div>
+                    <h3>Academic Building B</h3>
+                    <p class="building-info"><strong>Location:</strong> Campus West &nbsp;|&nbsp; <strong>Floors:</strong> 6 &nbsp;|&nbsp; <strong>Built:</strong> 2002</p>
+                    <div class="floor-layout">
+                        <h4>Floor Layout</h4>
+                        <ul>
+                            <li><span class="floor-badge">1F</span> Main Cafeteria, Café (B101-B110)</li>
+                            <li><span class="floor-badge">2–5F</span> Specialized Labs & Studios (B201-B520)</li>
+                            <li><span class="floor-badge">6F</span> Meeting Rooms, Admin Office</li>
+                        </ul>
+                    </div>
+                    <p class="building-capacity">Capacity: 1,500+ students</p>
+                </div>
+
+                <div class="building-card">
+                    <div class="building-icon">📚</div>
+                    <h3>Central Library</h3>
+                    <p class="building-info"><strong>Location:</strong> Campus Center &nbsp;|&nbsp; <strong>Floors:</strong> 5 &nbsp;|&nbsp; <strong>Built:</strong> 2008</p>
+                    <div class="floor-layout">
+                        <h4>Floor Layout</h4>
+                        <ul>
+                            <li><span class="floor-badge">1F</span> Main Desk, Circulation</li>
+                            <li><span class="floor-badge">2–3F</span> General Collections (100,000+ books)</li>
+                            <li><span class="floor-badge">4F</span> Study Rooms, Group Study Areas</li>
+                            <li><span class="floor-badge">5F</span> Digital Library, Computer Lab</li>
+                        </ul>
+                    </div>
+                    <p class="building-capacity">Hours: 08:00–22:00 (Mon–Fri), 09:00–18:00 (Sat–Sun)</p>
+                </div>
+
+                <div class="building-card">
+                    <div class="building-icon">🎯</div>
+                    <h3>Student Center</h3>
+                    <p class="building-info"><strong>Location:</strong> Campus Heart &nbsp;|&nbsp; <strong>Floors:</strong> 4 &nbsp;|&nbsp; <strong>Built:</strong> 2010</p>
+                    <div class="floor-layout">
+                        <h4>Floor Layout</h4>
+                        <ul>
+                            <li><span class="floor-badge">1F</span> Student Services, Info Desk (C101-C105)</li>
+                            <li><span class="floor-badge">2F</span> Club Rooms, Meeting Spaces</li>
+                            <li><span class="floor-badge">3F</span> Counseling, Health Center</li>
+                            <li><span class="floor-badge">4F</span> Conference Hall, Event Space</li>
+                        </ul>
+                    </div>
+                    <p class="building-capacity">Main Hub: Student activities & support services</p>
+                </div>
+
+                <div class="building-card">
+                    <div class="building-icon">🏛️</div>
+                    <h3>Student Dormitory A</h3>
+                    <p class="building-info"><strong>Location:</strong> Campus North &nbsp;|&nbsp; <strong>Floors:</strong> 12 &nbsp;|&nbsp; <strong>Capacity:</strong> 600 students</p>
+                    <div class="floor-layout">
+                        <h4>Amenities</h4>
+                        <ul>
+                            <li><span class="floor-badge">1F</span> Reception, Lobby</li>
+                            <li><span class="floor-badge">2–12F</span> Student Rooms (Double/Single)</li>
+                            <li><span class="floor-badge extra">+</span> Cafeteria, Laundry, Game Room, Study Lounge</li>
+                        </ul>
+                    </div>
+                    <p class="building-capacity">Quiet hours: 22:00 – 08:00</p>
+                </div>
+
+                <div class="building-card">
+                    <div class="building-icon">🏛️</div>
+                    <h3>Sports Complex</h3>
+                    <p class="building-info"><strong>Location:</strong> Campus South &nbsp;|&nbsp; <strong>Floors:</strong> 8 &nbsp;|&nbsp; <strong>Built:</strong> 2015</p>
+                    <div class="floor-layout">
+                        <h4>Facilities</h4>
+                        <ul>
+                            <li><span class="floor-badge">B1</span> Indoor Swimming Pool</li>
+                            <li><span class="floor-badge">1F</span> Main Gym, Reception</li>
+                            <li><span class="floor-badge">2–3F</span> Basketball, Badminton Courts</li>
+                            <li><span class="floor-badge">4F</span> Gym Equipment, Fitness Studio</li>
+                            <li><span class="floor-badge">5–8F</span> Climbing Wall, Yoga Studio</li>
+                        </ul>
+                    </div>
+                    <p class="building-capacity">Hours: 06:00–22:00 Daily</p>
+                </div>
+            </div>
+
+            <div class="room-system">
+                <h3>📍 Room Numbering System</h3>
+                <p>Understanding the room numbers helps you find classrooms easily:</p>
+                <table>
+                    <thead><tr><th>Format</th><th>Example</th><th>Meaning</th></tr></thead>
+                    <tbody>
+                        <tr><td>Building + Floor + Room</td><td><code>A305</code></td><td>Building A, 3rd Floor, Room 05</td></tr>
+                        <tr><td>B prefix</td><td><code>B101</code></td><td>Building B, 1st Floor</td></tr>
+                        <tr><td>Laboratory</td><td><code>A-B102</code></td><td>Lab in Building A, Basement 1</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Class Schedule Section -->
+    <section id="schedule" class="section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Timetable</div>
+                <h2>Class Schedule &amp; Timing</h2>
+                <p class="section-desc">Plan your day around these fixed periods</p>
+            </div>
+            <div class="schedule-info">
+                <h3>Daily Class Schedule</h3>
+                <table class="schedule-table">
+                    <thead>
+                        <tr><th>Period</th><th>Time</th><th>Duration</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1st Period</td><td>08:00 – 08:50</td><td>50 minutes</td></tr>
+                        <tr><td>2nd Period</td><td>09:00 – 09:50</td><td>50 minutes</td></tr>
+                        <tr><td>3rd Period</td><td>10:00 – 10:50</td><td>50 minutes</td></tr>
+                        <tr><td>4th Period</td><td>11:00 – 11:50</td><td>50 minutes</td></tr>
+                        <tr class="lunch-break"><td colspan="3">🍽️ LUNCH BREAK: 12:30 – 13:30</td></tr>
+                        <tr><td>5th Period</td><td>13:30 – 14:20</td><td>50 minutes</td></tr>
+                        <tr><td>6th Period</td><td>14:30 – 15:20</td><td>50 minutes</td></tr>
+                        <tr><td>7th Period</td><td>15:30 – 16:20</td><td>50 minutes</td></tr>
+                        <tr class="evening-class"><td>Evening Classes</td><td>18:00 – 21:00</td><td>3 hours</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="schedule-notes">
+                <h3>⚠️ Important Notes</h3>
+                <div class="notes-grid">
+                    <div class="note-card"><h4>Laboratory Classes</h4><p>Duration: 2–3 hours (Arranged separately)<br>Usually: Tuesday & Thursday afternoons</p></div>
+                    <div class="note-card"><h4>PE & Sports Classes</h4><p>Duration: 2 periods<br>Check specific timetable from department</p></div>
+                    <div class="note-card"><h4>Seminar Classes</h4><p>Duration: Usually 3 hours<br>Often held: Saturday mornings</p></div>
+                    <div class="note-card"><h4>Make-up Classes</h4><p>Duration: Variable<br>Announcement: Via online portal</p></div>
+                </div>
+            </div>
+
+            <div class="room-identification">
+                <h3>🏢 Finding Your Classroom</h3>
+                <p><strong>Example:</strong> Your class is in <code>A503</code></p>
+                <ol>
+                    <li>First digit <strong>(5)</strong> = 5th Floor</li>
+                    <li>Last two digits <strong>(03)</strong> = Room 3</li>
+                    <li>Building A, 5th Floor, Room 3</li>
+                    <li>Look for signs and ask seniors if needed!</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- Canteen & Dining Section -->
+    <section id="canteen" class="section section-alt">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Dining</div>
+                <h2>Canteen &amp; Dining Services</h2>
+                <p class="section-desc">Fuel your studies from ₩1,500 per item</p>
+            </div>
+            <div class="canteen-grid">
+                <div class="canteen-card">
+                    <h3>🍚 Main Cafeteria</h3>
+                    <p class="location">📍 Building B, 1st Floor</p>
+                    <div class="canteen-hours">
+                        <h4>Hours</h4>
+                        <ul>
+                            <li>🌅 Breakfast: 7:00 – 9:00 AM</li>
+                            <li>🍽️ Lunch: 11:30 AM – 1:30 PM</li>
+                            <li>🍲 Dinner: 5:00 – 7:00 PM</li>
+                        </ul>
+                    </div>
+                    <div class="pricing"><h4>Price Range</h4><p>₩5,000 – ₩8,000 per meal</p></div>
+                    <div class="menu-sample"><h4>Menu Types</h4>
+                        <ul>
+                            <li>✓ Korean Traditional</li>
+                            <li>✓ Rice Bowl Sets</li>
+                            <li>✓ Soup &amp; Stew</li>
+                            <li>✓ Side Dishes (Banchan)</li>
+                        </ul>
+                    </div>
+                    <p class="capacity">Seating: 400+ people</p>
+                </div>
+
+                <div class="canteen-card">
+                    <h3>☕ Convenience Cafes</h3>
+                    <p class="location">📍 3 locations across campus</p>
+                    <div class="canteen-hours">
+                        <h4>Hours</h4>
+                        <ul>
+                            <li>🌅 Opening: 7:00 AM</li>
+                            <li>🌙 Closing: 9:00 PM</li>
+                            <li>📅 Open 7 days a week</li>
+                        </ul>
+                    </div>
+                    <div class="pricing"><h4>Price Range</h4><p>₩2,000 – ₩4,500 per item</p></div>
+                    <div class="menu-sample"><h4>Available Items</h4>
+                        <ul>
+                            <li>✓ Coffee &amp; Tea</li>
+                            <li>✓ Sandwiches</li>
+                            <li>✓ Kimbap (Sushi rolls)</li>
+                            <li>✓ Snacks &amp; Desserts</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="canteen-card">
+                    <h3>🍴 Food Court</h3>
+                    <p class="location">📍 Student Center, B1 Floor</p>
+                    <div class="canteen-hours">
+                        <h4>Hours</h4>
+                        <ul>
+                            <li>🕐 Opening: 10:00 AM</li>
+                            <li>🕘 Closing: 8:00 PM</li>
+                            <li>📍 Multiple vendor stalls</li>
+                        </ul>
+                    </div>
+                    <div class="pricing"><h4>Price Range</h4><p>₩4,000 – ₩10,000 per meal</p></div>
+                    <div class="menu-sample"><h4>Available Options</h4>
+                        <ul>
+                            <li>✓ Korean BBQ</li>
+                            <li>✓ Chinese Noodles</li>
+                            <li>✓ Japanese Udon</li>
+                            <li>✓ Thai Food</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="canteen-card">
+                    <h3>🏘️ Dormitory Cafeteria</h3>
+                    <p class="location">📍 Dormitory A &amp; B, 1st Floor</p>
+                    <div class="canteen-hours">
+                        <h4>Hours</h4>
+                        <ul>
+                            <li>🌅 Breakfast: 7:00 – 8:30 AM</li>
+                            <li>🍽️ Lunch: 12:00 – 1:00 PM</li>
+                            <li>🍲 Dinner: 6:00 – 7:30 PM</li>
+                        </ul>
+                    </div>
+                    <div class="pricing"><h4>Price Range</h4><p>₩3,000 – ₩5,000 (Resident Only)</p></div>
+                    <div class="menu-sample"><h4>Special Features</h4>
+                        <ul>
+                            <li>✓ Meal plan included</li>
+                            <li>✓ Unlimited rice &amp; soup</li>
+                            <li>✓ Vegetarian options</li>
+                            <li>✓ Students-only access</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="canteen-card">
+                    <h3>🤖 Vending Machines</h3>
+                    <p class="location">📍 All buildings, 24/7 access</p>
+                    <div class="canteen-hours">
+                        <h4>Available</h4>
+                        <ul>
+                            <li>🕐 24 Hours Daily</li>
+                            <li>📍 All major buildings</li>
+                            <li>🔓 Card &amp; Cash accepted</li>
+                        </ul>
+                    </div>
+                    <div class="pricing"><h4>Price Range</h4><p>₩1,500 – ₩3,500 per item</p></div>
+                    <div class="menu-sample"><h4>Available Items</h4>
+                        <ul>
+                            <li>✓ Beverages (hot &amp; cold)</li>
+                            <li>✓ Snacks &amp; Candy</li>
+                            <li>✓ Instant noodles</li>
+                            <li>✓ Instant rice meals</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="canteen-card">
+                    <h3>🍽️ Nearby Restaurant Zone</h3>
+                    <p class="location">📍 Outside Campus Gate, 5–10 min walk</p>
+                    <div class="canteen-hours">
+                        <h4>General Hours</h4>
+                        <ul>
+                            <li>🕐 Most open: 10:00 AM</li>
+                            <li>🕙 Most close: 10:00 PM</li>
+                            <li>📊 20+ restaurants available</li>
+                        </ul>
+                    </div>
+                    <div class="pricing"><h4>Price Range</h4><p>₩7,000 – ₩20,000 per meal<br><span class="discount-tag">💚 10% Student Discount</span></p></div>
+                    <div class="menu-sample"><h4>Popular Cuisines</h4>
+                        <ul>
+                            <li>✓ Korean Grilled Meat</li>
+                            <li>✓ Spicy Soups</li>
+                            <li>✓ Seafood</li>
+                            <li>✓ International Cuisine</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="weekly-menu">
+                <h3>📋 Sample Weekly Cafeteria Menu</h3>
+                <table>
+                    <thead><tr><th>Day</th><th>Main Dish</th><th>Side Dish</th><th>Soup</th><th>Price</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Monday</strong></td><td>Bulgogi (Grilled Beef)</td><td>Kimchi, Spinach</td><td>Seaweed Soup</td><td>₩6,500</td></tr>
+                        <tr><td><strong>Tuesday</strong></td><td>Bibimbap</td><td>Bean sprouts, Radish</td><td>Doenjang Stew</td><td>₩5,500</td></tr>
+                        <tr><td><strong>Wednesday</strong></td><td>Fried Chicken</td><td>Coleslaw, Pickles</td><td>Vegetable Soup</td><td>₩7,000</td></tr>
+                        <tr><td><strong>Thursday</strong></td><td>Pork Cutlet (Donkasu)</td><td>Salad, Corn</td><td>Miso Soup</td><td>₩6,000</td></tr>
+                        <tr><td><strong>Friday</strong></td><td>Seafood Stir-fry</td><td>Kimchi, Spinach</td><td>Tofu Soup</td><td>₩7,500</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Facilities Section -->
+    <section id="facilities" class="section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Services</div>
+                <h2>Campus Facilities</h2>
+                <p class="section-desc">Everything available to enrolled students</p>
+            </div>
+            <div class="facilities-grid">
+                <div class="facility-card">
+                    <h3>💻 IT Support Center</h3>
+                    <p><strong>Location:</strong> Library, 5th Floor</p>
+                    <p><strong>Hours:</strong> Mon-Fri 9:00-18:00</p>
+                    <h4>Services:</h4>
+                    <ul>
+                        <li>Student email & portal setup</li>
+                        <li>WiFi account registration</li>
+                        <li>Software installation support</li>
+                        <li>Computer repair services</li>
+                    </ul>
+                </div>
+                <div class="facility-card">
+                    <h3>🏥 Health Center</h3>
+                    <p><strong>Location:</strong> Student Center, 3rd Floor</p>
+                    <p><strong>Hours:</strong> Mon-Fri 9:00-17:00</p>
+                    <h4>Services:</h4>
+                    <ul>
+                        <li>Basic medical consultations</li>
+                        <li>First aid & emergency care</li>
+                        <li>Mental health check-ups</li>
+                        <li>Referral to local hospitals</li>
+                    </ul>
+                </div>
+                <div class="facility-card">
+                    <h3>🏋️ Sports & Fitness</h3>
+                    <p><strong>Location:</strong> Sports Complex</p>
+                    <p><strong>Hours:</strong> 06:00-22:00 Daily</p>
+                    <h4>Available:</h4>
+                    <ul>
+                        <li>Indoor swimming pool</li>
+                        <li>Gym & fitness equipment</li>
+                        <li>Basketball / badminton courts</li>
+                        <li>Climbing wall & yoga studio</li>
+                    </ul>
+                </div>
+                <div class="facility-card">
+                    <h3>🧑‍🤝‍🧑 Counseling Center</h3>
+                    <p><strong>Location:</strong> Student Center, 3rd Floor</p>
+                    <p><strong>Hours:</strong> Mon-Fri 9:00-17:00</p>
+                    <h4>Services:</h4>
+                    <ul>
+                        <li>Individual counseling sessions</li>
+                        <li>Academic stress support</li>
+                        <li>Career guidance</li>
+                        <li>Group workshops</li>
+                    </ul>
+                </div>
+                <div class="facility-card">
+                    <h3>💼 Career Center</h3>
+                    <p><strong>Location:</strong> Building A, 8th Floor</p>
+                    <p><strong>Hours:</strong> Mon-Fri 9:00-18:00</p>
+                    <h4>Services:</h4>
+                    <ul>
+                        <li>Resume review & workshops</li>
+                        <li>Job & internship listings</li>
+                        <li>Mock interview practice</li>
+                        <li>Alumni networking events</li>
+                    </ul>
+                </div>
+                <div class="facility-card">
+                    <h3>💰 Financial Aid Office</h3>
+                    <p><strong>Location:</strong> Building A, 1st Floor</p>
+                    <p><strong>Hours:</strong> Mon-Fri 9:00-17:00</p>
+                    <h4>Services:</h4>
+                    <ul>
+                        <li>Scholarship applications</li>
+                        <li>Tuition payment plans</li>
+                        <li>Emergency student funds</li>
+                        <li>Part-time job referrals</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="office-hours">
+                <h3>🕐 Key Office Hours at a Glance</h3>
+                <table>
+                    <thead><tr><th>Office</th><th>Location</th><th>Mon–Fri</th><th>Weekend</th></tr></thead>
+                    <tbody>
+                        <tr><td>Student Services</td><td>Student Center, 1F</td><td>08:30–18:00</td><td>Closed</td></tr>
+                        <tr><td>Registrar's Office</td><td>Building A, 1F</td><td>09:00–17:00</td><td>Closed</td></tr>
+                        <tr><td>International Office</td><td>Building A, 2F</td><td>09:00–17:00</td><td>Closed</td></tr>
+                        <tr><td>IT Support</td><td>Library, 5F</td><td>09:00–18:00</td><td>Closed</td></tr>
+                        <tr><td>Health Center</td><td>Student Center, 3F</td><td>09:00–17:00</td><td>Emergency only</td></tr>
+                        <tr><td>Library</td><td>Campus Center</td><td>08:00–22:00</td><td>09:00–18:00</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacts Section -->
+    <section id="contacts" class="section section-alt">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Directory</div>
+                <h2>Contact Directory</h2>
+                <p class="section-desc">Reach the right office on the first try</p>
+            </div>
+            <div class="contacts-grid">
+                <div class="contact-card">
+                    <h3>🏫 Academic Offices</h3>
+                    <ul>
+                        <li><strong>Department of Engineering:</strong><br>+82-52-2XX-1001<br>engineering@ulsan.ac.kr</li>
+                        <li><strong>Department of Business:</strong><br>+82-52-2XX-1002<br>business@ulsan.ac.kr</li>
+                        <li><strong>Department of Architecture:</strong><br>+82-52-2XX-1003<br>architecture@ulsan.ac.kr</li>
+                    </ul>
+                </div>
+                <div class="contact-card">
+                    <h3>📋 Administrative Offices</h3>
+                    <ul>
+                        <li><strong>Main Reception:</strong><br>+82-52-2XX-0001<br>info@ulsan.ac.kr</li>
+                        <li><strong>Admissions Office:</strong><br>+82-52-2XX-0002<br>admissions@ulsan.ac.kr</li>
+                        <li><strong>Registrar:</strong><br>+82-52-2XX-0003<br>registrar@ulsan.ac.kr</li>
+                    </ul>
+                </div>
+                <div class="contact-card">
+                    <h3>🆘 Emergency Contacts</h3>
+                    <ul>
+                        <li><strong>Campus Security (24/7):</strong><br>+82-52-2XX-9999</li>
+                        <li><strong>Health Center:</strong><br>+82-52-2XX-8888</li>
+                        <li><strong>Fire / Ambulance:</strong><br>119</li>
+                        <li><strong>Police:</strong><br>112</li>
+                    </ul>
+                </div>
+                <div class="contact-card">
+                    <h3>🌐 Online Resources</h3>
+                    <ul>
+                        <li><strong>Student Portal:</strong><br>portal.ulsan.ac.kr</li>
+                        <li><strong>Library Catalog:</strong><br>library.ulsan.ac.kr</li>
+                        <li><strong>E-Learning:</strong><br>elearn.ulsan.ac.kr</li>
+                        <li><strong>Official Website:</strong><br>www.ulsan.ac.kr</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tips Section -->
+    <section id="tips" class="section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">Newcomers</div>
+                <h2>Tips &amp; Survival Guide</h2>
+                <p class="section-desc">Advice from seniors who've been there</p>
+            </div>
+            <div class="tips-container">
+                <!-- Checklist -->
+                <div class="tips-card full-width">
+                    <h3>✅ First Week Checklist</h3>
+                    <div class="checklist">
+                        <div class="checklist-item"><input type="checkbox"> Day 1: Register at Student Services Office</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 1: Get Student ID Card</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 1: Tour the campus buildings</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 2: Set up WiFi Account at IT Support Center</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 2: Register with Campus Security (Dorm students)</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 3: Attend your first classes</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 3: Visit Library and get library card</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 4: Open bank account (Off-campus students)</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 4: Explore campus dining options</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 5: Join a club or activity</div>
+                        <div class="checklist-item"><input type="checkbox"> Day 5: Make friends and find study partners</div>
+                    </div>
+                </div>
+
+                <div class="tips-card">
+                    <h3>🎒 Essential Items to Bring</h3>
+                    <h4>Documents:</h4>
+                    <ul>
+                        <li>✓ Passport or National ID</li>
+                        <li>✓ Admission Letter</li>
+                        <li>✓ Health Insurance Card</li>
+                        <li>✓ Proof of Residence</li>
+                    </ul>
+                    <h4>For Class:</h4>
+                    <ul>
+                        <li>✓ Laptop/Tablet (recommended)</li>
+                        <li>✓ Notebooks &amp; Stationery</li>
+                        <li>✓ Calculator</li>
+                        <li>✓ Planner/Calendar</li>
+                    </ul>
+                </div>
+
+                <div class="tips-card">
+                    <h3>💰 Money-Saving Tips</h3>
+                    <ul>
+                        <li>✓ Eat at main cafeteria (cheapest option)</li>
+                        <li>✓ Buy meal plan tickets (10–15% discount)</li>
+                        <li>✓ Use student discounts everywhere</li>
+                        <li>✓ Check for free campus events</li>
+                        <li>✓ Buy used textbooks from seniors</li>
+                        <li>✓ Rent textbooks instead of buying</li>
+                        <li>✓ Use library resources (free!)</li>
+                        <li>✓ Share transportation costs</li>
+                    </ul>
+                </div>
+
+                <div class="tips-card">
+                    <h3>🎓 What to Expect at University</h3>
+                    <ul>
+                        <li>✓ More freedom in class scheduling</li>
+                        <li>✓ Bigger classes in first year</li>
+                        <li>✓ More independent study required</li>
+                        <li>✓ Group projects are common</li>
+                        <li>✓ Office hours with professors</li>
+                        <li>✓ Active club culture</li>
+                        <li>✓ Variety of learning activities</li>
+                        <li>✓ Opportunity to develop leadership skills</li>
+                    </ul>
+                </div>
+
+                <div class="tips-card">
+                    <h3>🆘 Where to Get Help</h3>
+                    <ul>
+                        <li>✓ <strong>Academic Issues:</strong> Advisor or Department Office</li>
+                        <li>✓ <strong>Emotional Support:</strong> Counseling Center</li>
+                        <li>✓ <strong>Financial Aid:</strong> Student Services</li>
+                        <li>✓ <strong>Health Issues:</strong> Health Center</li>
+                        <li>✓ <strong>Technical Issues:</strong> IT Support</li>
+                        <li>✓ <strong>General Info:</strong> Student Services Desk</li>
+                    </ul>
+                </div>
+
+                <div class="tips-card">
+                    <h3>🌟 Campus Culture Tips</h3>
+                    <ul>
+                        <li>✓ Be respectful to seniors</li>
+                        <li>✓ Join clubs and make friends</li>
+                        <li>✓ Participate in campus events</li>
+                        <li>✓ Respect campus quiet hours (after 22:00)</li>
+                        <li>✓ Use campus facilities responsibly</li>
+                        <li>✓ Attend academic seminars</li>
+                        <li>✓ Respect different cultures &amp; backgrounds</li>
+                        <li>✓ Help younger students when possible</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="campus-rules">
+                <h3>📜 Important Campus Rules</h3>
+                <div class="rules-grid">
+                    <div class="rule-card">
+                        <h4>🏫 In Class</h4>
+                        <ul>
+                            <li>Arrive on time</li>
+                            <li>Respect professors</li>
+                            <li>No phones during lecture</li>
+                            <li>Participate actively</li>
+                        </ul>
+                    </div>
+                    <div class="rule-card">
+                        <h4>📚 In Library</h4>
+                        <ul>
+                            <li>Keep quiet</li>
+                            <li>Turn off phone</li>
+                            <li>No eating (except water)</li>
+                            <li>Return books on time</li>
+                        </ul>
+                    </div>
+                    <div class="rule-card">
+                        <h4>🏘️ In Dormitory</h4>
+                        <ul>
+                            <li>Quiet hours 22:00–08:00</li>
+                            <li>No loud music</li>
+                            <li>Guests by permission</li>
+                            <li>Keep room clean</li>
+                        </ul>
+                    </div>
+                    <div class="rule-card">
+                        <h4>🚫 General</h4>
+                        <ul>
+                            <li>No smoking on campus</li>
+                            <li>No alcohol in dorms</li>
+                            <li>Respect property</li>
+                            <li>Follow dress code</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="footer-logo">🎓</span>
+                    <div>
+                        <strong>Ulsan College Campus Helper</strong>
+                        <p>Designed for Newcomers</p>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="mailto:campushelper@ulsan.ac.kr">Contact Us</a>
+                    <a href="#home">Back to Top ↑</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Ulsan College Campus Helper &nbsp;|&nbsp; Version 1.0 &nbsp;|&nbsp; Last Updated: April 1, 2026 &nbsp;|&nbsp; Capstone Design Project</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

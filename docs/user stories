@@ -1,7 +1,87 @@
-As a student, I want to view my class schedule so that I can manage my time efficiently.
-As a student, I want to buy and sell items in a marketplace so that I can save money.
-As a student, I want to access professor contact details so that I can communicate easily.
+# 📝 In-Class Work – Team Checklist
 
+## 👥 Team Members
+- **Owner:** Kushal Kharka  
+- **Teammate:** Rajim Danuwar  
 
-Chosen Story:
-"As a student, I want to view my class schedule so that I can manage my time."
+---
+
+## 📌 User Stories
+
+1. **Create Tasks**  
+   As a user, I want to create tasks so that I can keep track of my work.
+
+2. **Mark Tasks as Completed**  
+   As a user, I want to mark tasks as completed so that I know what I’ve finished.
+
+3. **View Tasks**  
+   As a user, I want to view all my tasks in one place so that I can stay organized.
+
+---
+
+## ✅ Selected Story (This Week)
+
+**Create Tasks**  
+As a user, I want to create tasks so that I can keep track of my work.
+
+---
+
+## 🐛 Issue
+
+**Title:** Implement Task Creation Feature  
+
+**Description:**  
+Users should be able to enter a task title and add it to a task list.  
+The task should appear immediately after submission and be stored temporarily.
+
+---
+
+## 🎯 Definition of Done (DoD)
+
+- Task input field is visible  
+- User can type a task title  
+- "Add Task" button works correctly  
+- Task appears in the list after clicking the button  
+- No errors during task creation  
+- UI is clean and usable  
+- Code runs without bugs  
+
+---
+
+## 🌿 Branch
+
+---
+
+## 🚀 Implementation (First Slice)
+
+- Created input field for task entry  
+- Added "Add Task" button  
+- Implemented logic to store tasks in a list  
+- Displayed tasks dynamically on the screen  
+
+---
+
+## 📸 Proof
+
+- Screenshot of task input UI  
+- Screenshot showing task successfully added  
+- Functionality tested and working  
+
+---
+
+## 📦 Sprint Packet
+
+Includes:
+- User story  
+- Issue description  
+- Team member roles  
+- Definition of Done  
+- Implementation details  
+- Screenshots  
+
+---
+
+## 📝 Notes
+
+Task creation feature has been successfully implemented and tested.  
+The application allows users to add and view tasks without errors.

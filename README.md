@@ -108,6 +108,7 @@ After promoting a user, log out and log back in so the JWT includes the admin ro
 - [Team Agreement](docs/TEAM_AGREEMENT.md)
 - [Sprint Packets](docs/sprints)
 - [Issue Log](docs/Issue)
+- [OpenAI Setup](docs/OPENAI_SETUP.md)
 
 ## Team
 

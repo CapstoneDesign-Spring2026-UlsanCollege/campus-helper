@@ -55,6 +55,13 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'OPENAI_API_KEY is not configured on the server' },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const messages = (body.messages || []) as UIMessage[];
     const userId = getUserId(req, body.userId);

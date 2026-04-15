@@ -107,6 +107,7 @@ After promoting a user, log out and log back in so the JWT includes the admin ro
 - [Project Overview](docs/PROJECT.md)
 - [Team Agreement](docs/TEAM_AGREEMENT.md)
 - [Sprint Packets](docs/sprints)
+- [Issue Log](docs/Issue)
 
 ## Team
 

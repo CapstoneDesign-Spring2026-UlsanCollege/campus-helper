@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: LucideIcon;
@@ -11,7 +12,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, icon: Icon, error, label, variant = 'default', ...props }, ref) => {
-    const baseClass = "w-full rounded-xl text-white placeholder-gray-500 outline-none transition-all duration-300";
+    const baseClass = "w-full rounded-lg text-white placeholder-gray-500 outline-none transition-all duration-300";
 
     const variants = {
       default: "bg-white/5 border border-white/10 hover:border-white/20 focus:bg-white/10",

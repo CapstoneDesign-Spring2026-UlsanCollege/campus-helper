@@ -61,41 +61,39 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 md:space-y-8 pb-12">
-      {/* Enhanced Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-6 relative"
+        className="relative mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/45 p-5 shadow-2xl shadow-black/30"
       >
-        <div className="absolute -top-4 -left-4 w-32 h-32 bg-brand-purple/10 rounded-full blur-[60px] pointer-events-none" />
-        <div className="absolute -bottom-4 -right-4 w-40 h-40 bg-brand-accent/10 rounded-full blur-[60px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('/campus_bg.png')] bg-cover bg-center opacity-10" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,8,7,0.94),rgba(3,8,7,0.74))]" />
 
         <div className="relative z-10">
           <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 rounded-full bg-white/5 border border-white/10"
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 rounded-full bg-emerald-300/10 border border-emerald-200/20"
           >
-            <Zap size={12} className="text-brand-accent" />
-            <span className="text-xs font-medium text-gray-300">Dashboard Overview</span>
+            <Zap size={12} className="text-emerald-200" />
+            <span className="text-xs font-medium text-emerald-100">Dashboard Overview</span>
           </motion.div>
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2 text-white">
             Welcome back,{' '}
-            <span className="text-gradient-accent bg-gradient-to-r from-brand-accent to-brand-purple bg-clip-text text-transparent">
+            <span className="text-emerald-200">
               {prefix}{userName}
             </span>
           </h1>
           <p className="text-sm md:text-base text-gray-400 flex items-center gap-2">
-            <TrendingUp size={16} className="text-brand-accent" />
+            <TrendingUp size={16} className="text-emerald-200" />
             Here's what's happening today.
           </p>
         </div>
       </motion.header>
 
-      {/* Quick Actions - Enhanced Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {quickActions.map((action, idx) => (
           <motion.div
@@ -108,13 +106,13 @@ export default function DashboardPage() {
               <Card
                 hover
                 variant="bordered"
-                className={`h-full group cursor-pointer transition-all duration-500 border border-white/10 bg-gradient-to-br ${action.bgGradient} ${action.border}`}
+                className="h-full group cursor-pointer border border-white/10 bg-black/45 transition-all duration-300 hover:border-emerald-200/30"
               >
                 <div className="flex items-start justify-between mb-4">
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     transition={{ type: "spring", stiffness: 400 }}
-                    className={`p-3.5 rounded-xl bg-gradient-to-br ${action.gradient} ${action.color} shadow-xl shadow-black/30 ring-1 ring-white/10`}
+                    className="p-3.5 rounded-lg bg-emerald-300/10 text-emerald-100 shadow-xl shadow-black/30 ring-1 ring-white/10"
                   >
                     <action.icon size={22} />
                   </motion.div>
@@ -122,10 +120,10 @@ export default function DashboardPage() {
                     animate={{ x: [0, 4, 0] }}
                     transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
                   >
-                    <ArrowRight size={18} className="text-gray-500 group-hover:text-brand-accent transition-colors" />
+                  <ArrowRight size={18} className="text-gray-500 group-hover:text-emerald-200 transition-colors" />
                   </motion.div>
                 </div>
-                <h3 className="text-base md:text-lg font-bold text-white group-hover:text-brand-accent transition-colors">{action.title}</h3>
+                <h3 className="text-base md:text-lg font-bold text-white group-hover:text-emerald-100 transition-colors">{action.title}</h3>
                 <p className="text-xs md:text-sm text-gray-500 mt-1.5 leading-relaxed">{action.desc}</p>
               </Card>
             </Link>

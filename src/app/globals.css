@@ -1,29 +1,27 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #000000;
+  --color-background: #030807;
   --color-foreground: #FAFAFA;
 
-  /* Brand colors - Enhanced Cyberpunk Futurist */
-  --color-brand-purple: #9333EA;
-  --color-brand-purple-glow: rgba(147, 51, 234, 0.5);
-  --color-brand-indigo: #4F46E5;
-  --color-brand-indigo-glow: rgba(79, 70, 229, 0.5);
-  --color-brand-accent: #00F5FF; /* Cyber cyan */
-  --color-brand-accent-glow: rgba(0, 245, 255, 0.5);
-  --color-brand-danger: #FF006E; /* Neon pink */
-  --color-brand-danger-glow: rgba(255, 0, 110, 0.5);
-  --color-brand-warning: #FF9F1C; /* Electric orange */
+  --color-brand-purple: #7C3AED;
+  --color-brand-purple-glow: rgba(124, 58, 237, 0.32);
+  --color-brand-indigo: #0891B2;
+  --color-brand-indigo-glow: rgba(8, 145, 178, 0.32);
+  --color-brand-accent: #6EE7B7;
+  --color-brand-accent-glow: rgba(110, 231, 183, 0.34);
+  --color-brand-danger: #F43F5E;
+  --color-brand-danger-glow: rgba(244, 63, 94, 0.32);
+  --color-brand-warning: #FBBF24;
 
-  /* Glass colors - Enhanced depth */
-  --color-glass-border: rgba(255, 255, 255, 0.08);
-  --color-glass-border-hover: rgba(255, 255, 255, 0.25);
-  --color-glass-surface: rgba(20, 20, 22, 0.6);
-  --color-glass-surface-elevated: rgba(30, 30, 35, 0.8);
+  --color-glass-border: rgba(255, 255, 255, 0.10);
+  --color-glass-border-hover: rgba(110, 231, 183, 0.32);
+  --color-glass-surface: rgba(7, 16, 15, 0.72);
+  --color-glass-surface-elevated: rgba(10, 24, 22, 0.86);
 
-  --font-display: var(--font-orbitron), monospace;
-  --font-sans: var(--font-space-grotesk), var(--font-geist-sans), "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Aptos Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
 }
 
 :root {
@@ -38,41 +36,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   overflow-x: hidden;
-  /* Multi-layered ambient background with enhanced depth */
   background-image:
-    radial-gradient(circle at 0% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 25%),
-    radial-gradient(circle at 100% 0%, rgba(79, 70, 229, 0.12) 0%, transparent 25%),
-    radial-gradient(circle at 50% 100%, rgba(0, 245, 255, 0.08) 0%, transparent 25%),
-    radial-gradient(circle at 80% 50%, rgba(147, 51, 234, 0.05) 0%, transparent 20%),
-    radial-gradient(circle at 20% 80%, rgba(0, 245, 255, 0.05) 0%, transparent 20%);
+    linear-gradient(180deg, rgba(3, 8, 7, 0.96), rgba(3, 8, 7, 1)),
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
   background-attachment: fixed;
 }
 
-/* Glassmorphism Panel - Enhanced */
 .glass-panel {
-  background: linear-gradient(145deg, rgba(20,20,22,0.7) 0%, rgba(10,10,12,0.85) 100%);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: linear-gradient(145deg, rgba(12, 24, 22, 0.82) 0%, rgba(4, 10, 10, 0.9) 100%);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid var(--color-glass-border);
   box-shadow:
-    0 4px 30px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 0 40px rgba(0, 0, 0, 0.2);
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    0 18px 50px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
 }
 
 .glass-panel:hover {
   border-color: var(--color-glass-border-hover);
-  box-shadow:
-    0 12px 50px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 0 60px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
 }
 
-/* Enhanced gradient background utility */
 .gradient-bg {
-  background: linear-gradient(135deg, rgba(24,24,27,1) 0%, rgba(0,0,0,1) 100%);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.92) 0%, rgba(16, 185, 129, 0.92) 100%);
 }
 
 /* Neon glow effects */
@@ -237,7 +225,7 @@ body {
 /* Typography utilities */
 .text-display {
   font-family: var(--font-display);
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
 }
 
 .text-body {

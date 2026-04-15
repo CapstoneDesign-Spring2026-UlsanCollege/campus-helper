@@ -4,16 +4,17 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { motion, HTMLMotionProps } from 'framer-motion';
 
-interface ButtonProps extends HTMLMotionProps<"button"> {
+interface ButtonProps extends Omit<HTMLMotionProps<"button">, 'children'> {
   variant?: 'primary' | 'accent' | 'glass' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   glow?: boolean;
+  children?: React.ReactNode;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, glow = false, children, ...props }, ref) => {
-    const baseClass = "relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed group";
+    const baseClass = "relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-lg overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed group";
 
     const sizeClasses = {
       sm: "px-4 py-2 text-sm min-h-[40px]",
@@ -22,11 +23,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const variants = {
-      primary: "bg-gradient-to-r from-brand-purple to-brand-indigo text-white hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] hover:-translate-y-0.5",
-      accent: "bg-gradient-to-r from-brand-accent to-cyan-400 text-black font-semibold hover:shadow-[0_0_30px_rgba(0,245,255,0.4)] hover:-translate-y-0.5",
+      primary: "bg-emerald-300 text-black hover:bg-cyan-200 hover:-translate-y-0.5",
+      accent: "bg-cyan-200 text-black font-semibold hover:bg-white hover:-translate-y-0.5",
       glass: "glass-panel text-white hover:bg-white/10 hover:border-white/25",
       ghost: "text-gray-300 hover:text-white hover:bg-white/10",
-      danger: "bg-gradient-to-r from-brand-danger to-pink-500 text-white hover:shadow-[0_0_30px_rgba(255,0,110,0.4)] hover:-translate-y-0.5",
+      danger: "bg-brand-danger text-white hover:bg-red-400 hover:-translate-y-0.5",
     };
 
     const glowEffect = glow ? "relative overflow-hidden" : "";

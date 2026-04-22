@@ -2,15 +2,17 @@
 
 import React, { useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { User, Bell, Menu, LogOut, Loader2, Camera, Zap } from 'lucide-react';
+import { Bell, Menu, LogOut, Loader2, Camera } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MobileNav } from './MobileNav';
+import { Avatar } from '@/components/ui/Avatar';
 
 export function Navbar() {
   const router = useRouter();
   const [profilePic, setProfilePic] = useState('');
+  const [profileName, setProfileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -28,9 +30,11 @@ export function Navbar() {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
-         setProfilePic(JSON.parse(stored).profilePicture || '');
+         const user = JSON.parse(stored);
+         setProfilePic(user.profilePicture || '');
+         setProfileName(user.name || '');
       }
-    } catch(e) {}
+    } catch {}
 
     // Passive Ping Engine for Dynamic Inbox Tallying
     const fetchUnreads = async (isInitialTrigger = false) => {
@@ -46,7 +50,7 @@ export function Navbar() {
              }
              prevCount.current = data.count;
           }
-       } catch(e) {}
+       } catch {}
     };
 
     fetchUnreads(true);
@@ -103,8 +107,8 @@ export function Navbar() {
          icon: '✨',
          style: { background: 'rgba(0, 245, 255, 0.1)', border: '1px solid rgba(0, 245, 255, 0.2)' }
        });
-     } catch (err: any) {
-       toast.error(err.message || "Failed to upload profile photo");
+     } catch (err: unknown) {
+       toast.error(err instanceof Error ? err.message : "Failed to upload profile photo");
      } finally {
        setIsUploading(false);
        if(fileRef.current) fileRef.current.value = '';
@@ -200,9 +204,9 @@ export function Navbar() {
               {isUploading ? (
                  <Loader2 size={18} className="text-brand-accent animate-spin m-auto" />
               ) : profilePic ? (
-                 <img src={profilePic} alt="Profile" className="w-full h-full object-cover" />
+                 <Avatar src={profilePic} name={profileName} className="h-full w-full border-0 text-sm" />
               ) : (
-                 <User size={18} className="text-white/80 m-auto" />
+                 <Avatar name={profileName} className="h-full w-full border-0 text-sm" />
               )}
             </div>
 

@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 function getUserId(req: Request) {
   const token = req.headers.get('authorization')?.split(' ')[1];
   if(!token) return null;
-  try { return (jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as any).userId; } catch(e) { return null; }
+  try { return (jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as jwt.JwtPayload).userId; } catch { return null; }
 }
 
 export async function GET(req: Request) {
@@ -23,16 +23,16 @@ export async function GET(req: Request) {
     const users = await User.find({ 
       name: { $regex: query, $options: 'i' },
       _id: { $ne: userId }
-    }, 'name department studentId').limit(20);
+    }, 'name department studentId profilePicture').limit(20);
     return NextResponse.json(users);
   }
 
   // Aggregate pending requests AND accepted active connections mapping logic
-  const pending = await Friendship.find({ recipient: userId, status: 'pending' }).populate('requester', 'name department');
+  const pending = await Friendship.find({ recipient: userId, status: 'pending' }).populate('requester', 'name department profilePicture');
   const connections = await Friendship.find({
     $or: [{ requester: userId }, { recipient: userId }],
     status: 'accepted'
-  }).populate('requester', 'name department').populate('recipient', 'name department');
+  }).populate('requester', 'name department profilePicture').populate('recipient', 'name department profilePicture');
 
   return NextResponse.json({ pending, connections });
 }

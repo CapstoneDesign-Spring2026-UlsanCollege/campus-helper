@@ -13,7 +13,7 @@ function getUserId(req: Request) {
 
 export async function GET(req: Request) {
   await connectDB();
-  const items = await MarketItem.find({ status: 'available' }).populate('sellerId', 'name email department').sort({ createdAt: -1 });
+  const items = await MarketItem.find({ status: 'available' }).populate('sellerId', 'name email department profilePicture').sort({ createdAt: -1 });
   return NextResponse.json(items);
 }
 

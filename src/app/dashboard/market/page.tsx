@@ -7,6 +7,23 @@ import { Button } from '@/components/ui/Button';
 import { ShoppingBag, UploadCloud, Tag, Trash, Edit2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { Avatar } from '@/components/ui/Avatar';
+
+function SelectedPhotoPreview({ file }: { file: File }) {
+  const [src, setSrc] = useState('');
+
+  useEffect(() => {
+    const nextSrc = URL.createObjectURL(file);
+    setSrc(nextSrc);
+    return () => URL.revokeObjectURL(nextSrc);
+  }, [file]);
+
+  return (
+    <div className="aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40">
+      {src && <img src={src} alt={file.name} className="h-full w-full object-cover" />}
+    </div>
+  );
+}
 
 export default function MarketPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -72,7 +89,13 @@ export default function MarketPage() {
         const formData = new FormData();
         formData.append('file', file);
         const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-        if(uploadRes.ok) imageUrls.push((await uploadRes.json()).url);
+        if (!uploadRes.ok) {
+          const error = await uploadRes.json().catch(() => ({ error: 'Image upload failed' }));
+          throw new Error(error.error || 'Image upload failed');
+        }
+        const uploaded = await uploadRes.json();
+        if (!uploaded.url) throw new Error('Image upload did not return a URL');
+        imageUrls.push(uploaded.url);
       }
 
       const method = editingId ? 'PUT' : 'POST';
@@ -90,7 +113,9 @@ export default function MarketPage() {
          cancelEdit();
          fetchItems();
       } else toast.error("Processing failed.");
-    } catch(e) { toast.error("Network error."); } finally { setIsPosting(false); }
+    } catch(e) {
+      toast.error(e instanceof Error ? e.message : "Network error.");
+    } finally { setIsPosting(false); }
   };
 
   return (
@@ -138,6 +163,13 @@ export default function MarketPage() {
                     <UploadCloud size={24} className="mb-2" />
                     {files.length > 0 ? <span className="text-brand-purple font-bold">{files.length} Photo(s) Selected</span> : "Upload Pictures"}
                  </label>
+                 {files.length > 0 && (
+                   <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
+                     {files.map((file) => (
+                       <SelectedPhotoPreview key={`${file.name}-${file.lastModified}`} file={file} />
+                     ))}
+                   </div>
+                 )}
               </div>
             )}
             <Button type="submit" isLoading={isPosting} className="bg-brand-purple font-bold text-white shadow-brand-purple/30 hover:shadow-[0_0_20px_rgba(167,139,250,0.5)]">
@@ -178,12 +210,15 @@ export default function MarketPage() {
                        <h4 className="font-bold text-xl text-white leading-tight mb-2 truncate">{item.title}</h4>
                        <p className="text-gray-400 text-xs mb-4 line-clamp-2 leading-relaxed">{item.description}</p>
                        
-                       <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
-                          <div>
+                       <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                             <Avatar src={item.sellerId?.profilePicture} name={isOwner ? 'You' : item.sellerId?.name} className="h-10 w-10 text-sm" />
+                             <div className="min-w-0">
                              <p className={`text-xs font-bold tracking-tight ${isOwner ? 'text-brand-purple' : 'text-brand-accent'}`}>
                                 {isOwner ? 'You (Owner)' : item.sellerId?.name}
                              </p>
                              <p className="text-[9px] text-gray-500 uppercase tracking-widest">{item.sellerId?.department}</p>
+                             </div>
                           </div>
                           {!isOwner && (
                              <Button variant="ghost" className="text-white hover:bg-brand-purple/20 bg-white/5 text-[10px] uppercase font-bold tracking-widest h-8 px-3 transition-colors border border-white/5">Message</Button>

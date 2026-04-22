@@ -7,6 +7,23 @@ import { Button } from '@/components/ui/Button';
 import { MapPin, UploadCloud, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { Avatar } from '@/components/ui/Avatar';
+
+function SelectedPhotoPreview({ file }: { file: File }) {
+  const [src, setSrc] = useState('');
+
+  useEffect(() => {
+    const nextSrc = URL.createObjectURL(file);
+    setSrc(nextSrc);
+    return () => URL.revokeObjectURL(nextSrc);
+  }, [file]);
+
+  return (
+    <div className="aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40">
+      {src && <img src={src} alt={file.name} className="h-full w-full object-cover" />}
+    </div>
+  );
+}
 
 export default function LostFoundPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -38,7 +55,13 @@ export default function LostFoundPage() {
         const formData = new FormData();
         formData.append('file', file);
         const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-        if(uploadRes.ok) imageUrls.push((await uploadRes.json()).url);
+        if (!uploadRes.ok) {
+          const error = await uploadRes.json().catch(() => ({ error: 'Image upload failed' }));
+          throw new Error(error.error || 'Image upload failed');
+        }
+        const uploaded = await uploadRes.json();
+        if (!uploaded.url) throw new Error('Image upload did not return a URL');
+        imageUrls.push(uploaded.url);
       }
 
       const res = await fetch('/api/lost-found', {
@@ -51,7 +74,9 @@ export default function LostFoundPage() {
          setTitle(''); setDescription(''); setLocation(''); setFiles([]);
          fetchItems();
       }
-    } catch(e) { toast.error("Failed to submit."); } finally { setIsPosting(false); }
+    } catch(e) {
+      toast.error(e instanceof Error ? e.message : "Failed to submit.");
+    } finally { setIsPosting(false); }
   };
 
   return (
@@ -95,6 +120,13 @@ export default function LostFoundPage() {
                   <UploadCloud size={24} className="mb-2" />
                   {files.length > 0 ? <span className="font-bold text-emerald-400">{files.length} Photo(s) Selected</span> : "Upload Photos"}
                </label>
+               {files.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
+                     {files.map((file) => (
+                        <SelectedPhotoPreview key={`${file.name}-${file.lastModified}`} file={file} />
+                     ))}
+                  </div>
+               )}
             </div>
             <Button type="submit" isLoading={isPosting} className="bg-emerald-500 text-black shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:bg-emerald-400 font-bold">Submit Post</Button>
          </form>
@@ -124,8 +156,11 @@ export default function LostFoundPage() {
                      
                      <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
                         <span className="text-[10px] text-gray-500 font-mono flex items-center gap-2 tracking-widest"><MapPin size={10} className={item.type === 'lost' ? 'text-red-400' : 'text-blue-400'}/> LOCATION: {item.locationFound}</span>
-                        <div className="flex items-center justify-between mt-1">
-                           <span className="text-[10px] text-brand-accent uppercase font-bold tracking-widest truncate">{item.reportedBy?.name}</span>
+                        <div className="flex items-center justify-between gap-3 mt-1">
+                           <div className="flex min-w-0 items-center gap-2">
+                              <Avatar src={item.reportedBy?.profilePicture} name={item.reportedBy?.name} className="h-8 w-8 text-xs" />
+                              <span className="text-[10px] text-brand-accent uppercase font-bold tracking-widest truncate">{item.reportedBy?.name}</span>
+                           </div>
                            <Button variant="ghost" className="text-white hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] uppercase font-bold tracking-widest h-7 px-3">Message</Button>
                         </div>
                      </div>

@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   
   const query = filterType ? { type: filterType, status: 'active' } : { status: 'active' };
   
-  const items = await LostItem.find(query).populate('reportedBy', 'name email department').sort({ createdAt: -1 });
+  const items = await LostItem.find(query).populate('reportedBy', 'name email department profilePicture').sort({ createdAt: -1 });
   return NextResponse.json(items);
 }
 

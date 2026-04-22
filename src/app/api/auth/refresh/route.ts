@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60,
-      path: '/api/auth/refresh',
+      path: '/',
     });
 
     return NextResponse.json({ accessToken: tokens.accessToken });

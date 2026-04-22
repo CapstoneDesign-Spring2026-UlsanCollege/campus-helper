@@ -1,4 +1,5 @@
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { openai } from '@ai-sdk/openai';
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
@@ -32,6 +33,35 @@ const welcomeMessage: UIMessage = {
   ],
 };
 
+function getAIErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes('insufficient_quota') || message.toLowerCase().includes('quota')) {
+    return 'The AI assistant is connected, but the configured AI provider has no available quota. Please check billing, usage limits, or use a key from a project with available credits.';
+  }
+
+  if (message.toLowerCase().includes('api key')) {
+    return 'The AI assistant could not authenticate with the configured AI provider. Please check GEMINI_API_KEY or OPENAI_API_KEY in .env.local.';
+  }
+
+  return 'The AI assistant could not complete the response. Please try again in a moment.';
+}
+
+function getConfiguredModel() {
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
+  if (geminiKey) {
+    const google = createGoogleGenerativeAI({ apiKey: geminiKey });
+    return google('gemini-2.5-flash');
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    return openai('gpt-4o');
+  }
+
+  return null;
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -55,9 +85,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const model = getConfiguredModel();
+
+    if (!model) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY is not configured on the server' },
+        { error: 'No AI provider key is configured. Add GEMINI_API_KEY or OPENAI_API_KEY in .env.local.' },
         { status: 503 }
       );
     }
@@ -71,13 +103,14 @@ export async function POST(req: Request) {
     }
 
     const result = streamText({
-      model: openai('gpt-4o'),
+      model,
       system: 'You are ULSAN Campus+, a practical AI assistant for Ulsan University students. Be concise, helpful, and student-friendly. Help with computer science, study planning, schedules, notes, marketplace posts, and campus questions. Use Markdown when it improves readability.',
       messages: await convertToModelMessages(messages),
     });
 
     return result.toUIMessageStreamResponse({
       originalMessages: messages,
+      onError: getAIErrorMessage,
       onFinish: async ({ messages: finishedMessages }) => {
         if (userId && userId !== 'anonymous') {
           try {

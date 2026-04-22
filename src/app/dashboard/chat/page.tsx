@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { MessageCircle, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Avatar } from '@/components/ui/Avatar';
 
 export default function ChatPage() {
   const [friends, setFriends] = useState<any[]>([]);
@@ -76,7 +77,7 @@ export default function ChatPage() {
                    onClick={() => setActiveChat(peer)}
                    className={`p-3 rounded-xl cursor-pointer transition-all flex items-center gap-3 ${isActive ? 'bg-brand-purple/20 border border-brand-purple/50' : 'hover:bg-white/5 border border-transparent'}`}
                  >
-                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0 ${isActive ? 'gradient-bg shadow-brand-indigo/50' : 'bg-white/10'}`}>{peer.name.charAt(0)}</div>
+                   <Avatar src={peer.profilePicture} name={peer.name} className={`h-10 w-10 text-sm ${isActive ? 'shadow-brand-indigo/50' : ''}`} />
                    <div className="truncate">
                      <p className={`font-bold text-sm leading-tight truncate ${isActive ? 'text-white' : 'text-gray-300'}`}>{peer.name}</p>
                      <p className="text-[10px] text-gray-500 uppercase tracking-widest truncate">{peer.department}</p>
@@ -92,9 +93,7 @@ export default function ChatPage() {
             <>
               <div className="px-6 py-4 border-b border-white/5 bg-white/5 flex items-center justify-between z-10 shrink-0">
                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full gradient-bg flex items-center justify-center text-white font-bold text-xl uppercase shadow-[0_0_15px_rgba(102,126,234,0.3)]">
-                       {activeChat.name.charAt(0)}
-                    </div>
+                    <Avatar src={activeChat.profilePicture} name={activeChat.name} className="h-12 w-12 text-xl shadow-[0_0_15px_rgba(102,126,234,0.3)]" />
                     <div>
                        <h3 className="text-xl font-bold text-white leading-tight">{activeChat.name}</h3>
                        <span className="text-[10px] text-brand-accent tracking-widest uppercase flex items-center gap-1">

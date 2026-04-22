@@ -25,6 +25,38 @@ function SelectedPhotoPreview({ file }: { file: File }) {
   );
 }
 
+async function refreshAccessToken() {
+  const res = await fetch('/api/auth/refresh', { method: 'POST' });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  if (typeof data.accessToken !== 'string') return null;
+
+  localStorage.setItem('accessToken', data.accessToken);
+  return data.accessToken;
+}
+
+async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
+  const withToken = (token: string | null): RequestInit => ({
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      Authorization: `Bearer ${token || ''}`,
+    },
+  });
+
+  let res = await fetch(input, withToken(localStorage.getItem('accessToken')));
+
+  if (res.status === 401) {
+    const nextToken = await refreshAccessToken();
+    if (nextToken) {
+      res = await fetch(input, withToken(nextToken));
+    }
+  }
+
+  return res;
+}
+
 export default function MarketPage() {
   const [items, setItems] = useState<any[]>([]);
   const [title, setTitle] = useState('');
@@ -51,14 +83,16 @@ export default function MarketPage() {
   const handleDelete = async (id: string) => {
      if(!confirm("Are you sure you want to permanently delete this listing?")) return;
      try {
-       const res = await fetch(`/api/market?id=${id}`, {
+       const res = await fetchWithAuth(`/api/market?id=${id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
        });
        if(res.ok) {
           toast.success("Item permanently removed.");
           fetchItems();
-       } else toast.error("Failed to delete item.");
+       } else {
+          const error = await res.json().catch(() => ({ error: "Failed to delete item." }));
+          toast.error(error.error || "Failed to delete item.");
+       }
      } catch(e) { toast.error("Network error"); }
   };
 
@@ -91,7 +125,7 @@ export default function MarketPage() {
         const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
         if (!uploadRes.ok) {
           const error = await uploadRes.json().catch(() => ({ error: 'Image upload failed' }));
-          throw new Error(error.error || 'Image upload failed');
+          throw new Error(error.error || 'Photo upload failed. Try another image or publish without photos.');
         }
         const uploaded = await uploadRes.json();
         if (!uploaded.url) throw new Error('Image upload did not return a URL');
@@ -103,16 +137,19 @@ export default function MarketPage() {
           ? { _id: editingId, title, description, price: Number(price) }
           : { title, description, price: Number(price), imageUrls };
 
-      const res = await fetch('/api/market', {
+      const res = await fetchWithAuth('/api/market', {
          method: method,
-         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
+         headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify(bodyPayload)
       });
       if(res.ok) {
          toast.success(editingId ? "Listing Modified Successfully!" : "Item successfully listed!");
          cancelEdit();
          fetchItems();
-      } else toast.error("Processing failed.");
+      } else {
+         const error = await res.json().catch(() => ({ error: "Processing failed." }));
+         toast.error(error.error || "Processing failed.");
+      }
     } catch(e) {
       toast.error(e instanceof Error ? e.message : "Network error.");
     } finally { setIsPosting(false); }

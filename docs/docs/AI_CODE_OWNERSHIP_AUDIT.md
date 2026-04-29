@@ -1,7 +1,7 @@
 1	# AI Code Ownership Audit - Campus Helper
      2	
      3	## 1) Team + Project
-     4	
+     4	 
      5	- **Team:** LKRB
      6	- **Project name:** Campus Helper
      7	- **Current repo:** https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper

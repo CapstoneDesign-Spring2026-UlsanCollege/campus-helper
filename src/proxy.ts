@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import * as jose from 'jose';
+import { getJwtAccessSecret, getJwtRefreshSecret } from '@/lib/env';
 
 export async function proxy(request: NextRequest) {
   const protectedRoutes = ['/dashboard', '/api/notes', '/api/ai', '/api/timetable', '/api/market', '/api/lost-found', '/api/friends', '/api/chat'];
@@ -23,13 +24,13 @@ export async function proxy(request: NextRequest) {
 
   try {
     if (accessToken) {
-      const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET || 'fallback_access_secret');
+      const secret = new TextEncoder().encode(getJwtAccessSecret());
       await jose.jwtVerify(accessToken, secret);
       return NextResponse.next();
     }
 
     if (refreshCookie) {
-      const secret = new TextEncoder().encode(process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret');
+      const secret = new TextEncoder().encode(getJwtRefreshSecret());
       await jose.jwtVerify(refreshCookie, secret);
       return NextResponse.next();
     }

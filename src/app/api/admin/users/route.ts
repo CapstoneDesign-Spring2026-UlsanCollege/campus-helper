@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
 import Note from '@/models/Note';
 import jwt from 'jsonwebtoken';
+import { getJwtAccessSecret } from '@/lib/env';
 
 function getAdminUserId(req: Request) {
   const token = req.headers.get('authorization')?.split(' ')[1];
@@ -11,7 +12,7 @@ function getAdminUserId(req: Request) {
   try {
     const decoded = jwt.verify(
       token,
-      process.env.JWT_ACCESS_SECRET || 'fallback_access_secret'
+      getJwtAccessSecret()
     ) as { userId?: string; role?: string };
 
     if (decoded.role !== 'admin' || !decoded.userId) return null;

@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import MarketItem from '@/models/MarketItem';
 import jwt from 'jsonwebtoken';
+import { getJwtAccessSecret } from '@/lib/env';
 
 function getUserId(req: Request) {
   const token = req.headers.get('authorization')?.split(' ')[1];
   if (!token) return null;
   try {
-    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET || 'fallback_access_secret') as { userId?: string; id?: string };
+    const payload = jwt.verify(token, getJwtAccessSecret()) as { userId?: string; id?: string };
     return payload.userId || payload.id || null;
   } catch { return null; }
 }

@@ -69,6 +69,27 @@ For the real application, use a platform that supports Next.js server routes and
 - Render
 - Any Node.js server or Docker host
 
+### Vercel From GitHub
+
+This repository is prepared for direct Vercel deployment from GitHub.
+
+1. Import the repository into Vercel.
+2. Keep the detected framework as `Next.js`.
+3. Add the environment variables from `.env.example`.
+4. Set `NEXT_PUBLIC_APP_URL` to your production domain, for example:
+
+```env
+NEXT_PUBLIC_APP_URL=https://your-project.vercel.app
+```
+
+5. Redeploy after saving environment variables.
+
+Notes:
+
+- Password reset links use `NEXT_PUBLIC_APP_URL`, `APP_URL`, or the Vercel domain automatically.
+- Redis is optional. Without `REDIS_URL`, login rate limiting runs in degraded mode instead of trying to connect to `localhost`.
+- JWT secrets are required in production. Runtime fallback secrets were removed.
+
 Required environment variables include:
 
 ```env
@@ -83,7 +104,13 @@ CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
+NEXT_PUBLIC_APP_URL=
+APP_URL=
+SMTP_USER=
+SMTP_PASS=
 ```
+
+You can use `.env.example` as the deployment checklist.
 
 ## Repository Structure
 
@@ -121,6 +148,7 @@ CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ### 3. Run the development server

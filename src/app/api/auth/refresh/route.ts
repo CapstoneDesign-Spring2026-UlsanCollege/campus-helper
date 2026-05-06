@@ -4,6 +4,7 @@ import User from '@/models/User';
 import { generateTokens } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import { getJwtRefreshSecret } from '@/lib/env';
 
 export async function POST(req: Request) {
   try {
@@ -15,8 +16,8 @@ export async function POST(req: Request) {
     }
 
     try {
-      jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret');
-    } catch (err) {
+      jwt.verify(refreshToken, getJwtRefreshSecret());
+    } catch {
       return NextResponse.json({ error: 'Invalid or expired refresh token' }, { status: 401 });
     }
 

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { getJwtAccessSecret, getJwtRefreshSecret } from '@/lib/env';
 
 export async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
@@ -13,13 +14,13 @@ export async function comparePassword(password: string, hash: string) {
 export function generateTokens(userId: string, role: string) {
   const accessToken = jwt.sign(
     { userId, role },
-    process.env.JWT_ACCESS_SECRET || 'fallback_access_secret',
+    getJwtAccessSecret(),
     { expiresIn: '15m' }
   );
 
   const refreshToken = jwt.sign(
     { userId, role },
-    process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret',
+    getJwtRefreshSecret(),
     { expiresIn: '7d' }
   );
 

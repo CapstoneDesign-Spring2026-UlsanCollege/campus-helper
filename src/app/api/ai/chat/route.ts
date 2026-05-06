@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import ChatHistory from '@/models/ChatHistory';
 import jwt from 'jsonwebtoken';
+import { getJwtAccessSecret } from '@/lib/env';
 
 export const maxDuration = 30;
 
@@ -13,7 +14,7 @@ function getUserId(req: Request, fallback?: string) {
 
   if (token) {
     try {
-      return (jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { userId?: string }).userId || fallback;
+      return (jwt.verify(token, getJwtAccessSecret()) as { userId?: string }).userId || fallback;
     } catch {
       return fallback;
     }

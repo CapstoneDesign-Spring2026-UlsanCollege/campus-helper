@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import LostItem from '@/models/LostItem';
 import jwt from 'jsonwebtoken';
+import { getJwtAccessSecret } from '@/lib/env';
 
 function getUserId(req: Request) {
   const token = req.headers.get('authorization')?.split(' ')[1];
   if (!token) return null;
   try {
-    return (jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as any).userId;
-  } catch(e) { return null; }
+    return (jwt.verify(token, getJwtAccessSecret()) as { userId?: string }).userId || null;
+  } catch { return null; }
 }
 
 export async function GET(req: Request) {

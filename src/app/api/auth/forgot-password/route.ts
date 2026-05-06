@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
 import nodemailer from 'nodemailer';
+import { getAppBaseUrl } from '@/lib/env';
 
 export async function POST(req: Request) {
   try {
@@ -21,8 +22,7 @@ export async function POST(req: Request) {
     user.resetPasswordExpires = Date.now() + 3600000; // 1 solid hour lockout
     await user.save();
 
-    // Map strictly to our default frontend port
-    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+    const resetUrl = `${getAppBaseUrl()}/reset-password?token=${resetToken}`;
     
     // Intercept explicitly via Backend Output for active Development Testing
     console.log(`\n\n[SECURITY ENGINE] Password Reset Dispatch Intercepted!`);

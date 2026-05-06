@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Campus Helper | Ulsan College</title>
+    <meta
+      name="description"
+      content="Campus Helper is a smart campus platform for Ulsan College students with AI help, schedules, notes, marketplace, chat, and admin tools."
+    />
+    <style>
+      :root {
+        --bg: #071114;
+        --panel: rgba(9, 19, 24, 0.78);
+        --panel-strong: rgba(7, 13, 18, 0.88);
+        --border: rgba(160, 255, 229, 0.18);
+        --text: #f3fbf8;
+        --muted: #97b1ab;
+        --cyan: #83fff1;
+        --green: #9bffb2;
+        --ink: #021012;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text);
+        background:
+          linear-gradient(180deg, rgba(2, 8, 10, 0.15), rgba(2, 8, 10, 0.94)),
+          radial-gradient(circle at top left, rgba(131, 255, 241, 0.14), transparent 34%),
+          radial-gradient(circle at right center, rgba(155, 255, 178, 0.12), transparent 28%),
+          url("./assets/campus_bg.png") center center / cover no-repeat fixed,
+          var(--bg);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 56px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 8px;
+        background: rgba(5, 11, 15, 0.7);
+        backdrop-filter: blur(18px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: var(--ink);
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--cyan), var(--green));
+        box-shadow: 0 0 24px rgba(131, 255, 241, 0.18);
+      }
+
+      .brand-copy {
+        min-width: 0;
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 0.98rem;
+        letter-spacing: 0.04em;
+      }
+
+      .brand-copy span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .nav-links a,
+      .button,
+      .link-card {
+        border-radius: 8px;
+        transition:
+          transform 160ms ease,
+          border-color 160ms ease,
+          background 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .nav-links a {
+        padding: 10px 14px;
+        color: var(--muted);
+        border: 1px solid transparent;
+      }
+
+      .nav-links a:hover,
+      .nav-links a:focus-visible {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(131, 255, 241, 0.16);
+      }
+
+      .hero {
+        margin-top: 18px;
+        min-height: 70vh;
+        display: grid;
+        align-items: end;
+      }
+
+      .hero-panel {
+        width: min(760px, 100%);
+        padding: 28px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background:
+          linear-gradient(180deg, rgba(10, 20, 25, 0.7), rgba(5, 10, 14, 0.92)),
+          rgba(7, 15, 19, 0.82);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--cyan);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.5rem, 7vw, 5.5rem);
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+      }
+
+      .hero p {
+        margin: 18px 0 0;
+        max-width: 58ch;
+        color: #c8dad5;
+        font-size: clamp(1rem, 2vw, 1.12rem);
+        line-height: 1.65;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 18px;
+        font-weight: 700;
+        border: 1px solid transparent;
+      }
+
+      .button.primary {
+        color: var(--ink);
+        background: linear-gradient(135deg, var(--cyan), var(--green));
+        box-shadow: 0 16px 32px rgba(131, 255, 241, 0.18);
+      }
+
+      .button.secondary {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+
+      .button:hover,
+      .button:focus-visible,
+      .link-card:hover,
+      .link-card:focus-visible {
+        transform: translateY(-1px);
+      }
+
+      section {
+        margin-top: 22px;
+        padding: 22px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+      }
+
+      .section-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .section-head h2 {
+        margin: 0;
+        font-size: 1.25rem;
+      }
+
+      .section-head p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .metrics,
+      .feature-grid,
+      .links {
+        display: grid;
+        gap: 14px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .metric,
+      .feature,
+      .link-card {
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--panel-strong);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.6rem;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .feature h3,
+      .link-card strong {
+        margin: 0 0 10px;
+        font-size: 1rem;
+      }
+
+      .feature p,
+      .link-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 0.92rem;
+      }
+
+      .links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .link-card {
+        display: block;
+      }
+
+      .footer {
+        margin-top: 18px;
+        padding: 18px 2px 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--cyan);
+      }
+
+      @media (max-width: 980px) {
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .feature-grid,
+        .links {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-panel {
+          padding: 22px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          width: min(100% - 20px, 1180px);
+          padding-top: 12px;
+        }
+
+        .topbar,
+        section,
+        .hero-panel {
+          border-radius: 8px;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .nav-links {
+          width: 100%;
+        }
+
+        .nav-links a {
+          flex: 1 1 auto;
+          text-align: center;
+        }
+
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">C+</div>
+          <div class="brand-copy">
+            <strong>Campus Helper</strong>
+            <span>Ulsan College smart campus platform</span>
+          </div>
+        </div>
+        <nav class="nav-links" aria-label="Project links">
+          <a href="#overview">Overview</a>
+          <a href="#features">Features</a>
+          <a href="#docs">Docs</a>
+          <a href="https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper">GitHub</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-panel">
+            <div class="eyebrow">Capstone Design Spring 2026</div>
+            <h1 id="hero-title">Campus Helper</h1>
+            <p>
+              A modern campus platform for Ulsan College students, bringing together AI
+              assistance, notes, scheduling, lost-and-found, marketplace, messaging, and
+              admin notices in one focused workspace.
+            </p>
+            <div class="hero-actions">
+              <a class="button primary" href="https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper">Open Repository</a>
+              <a class="button secondary" href="#docs">Read Project Docs</a>
+            </div>
+          </div>
+        </section>
+
+        <section id="overview">
+          <div class="section-head">
+            <div>
+              <h2>Project Snapshot</h2>
+              <p>
+                GitHub Pages hosts this static project site. The full application itself runs on
+                server-based hosting because authentication, database access, and AI APIs require
+                backend execution.
+              </p>
+            </div>
+          </div>
+          <div class="metrics">
+            <div class="metric">
+              <strong>AI</strong>
+              <span>Chat assistant with campus workflow support</span>
+            </div>
+            <div class="metric">
+              <strong>MongoDB</strong>
+              <span>Persistent users, chat, items, and notices</span>
+            </div>
+            <div class="metric">
+              <strong>Next.js 16</strong>
+              <span>App Router full-stack architecture</span>
+            </div>
+            <div class="metric">
+              <strong>Student-first</strong>
+              <span>Built for real academic and campus tasks</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="features">
+          <div class="section-head">
+            <div>
+              <h2>Core Features</h2>
+              <p>What the full application provides when deployed on a server platform.</p>
+            </div>
+          </div>
+          <div class="feature-grid">
+            <article class="feature">
+              <h3>Authentication + Admin</h3>
+              <p>Signup, login, role-based admin access, refresh tokens, and protected dashboards.</p>
+            </article>
+            <article class="feature">
+              <h3>Campus Productivity</h3>
+              <p>AI assistant, timetable tools, study notes, and one place for daily student workflows.</p>
+            </article>
+            <article class="feature">
+              <h3>Community Tools</h3>
+              <p>Marketplace, lost-and-found, direct chat, student network connections, and notices.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="docs">
+          <div class="section-head">
+            <div>
+              <h2>Documentation</h2>
+              <p>Public project materials that work well on GitHub Pages.</p>
+            </div>
+          </div>
+          <div class="links">
+            <a class="link-card" href="./PROJECT.md">
+              <strong>Project Overview</strong>
+              <p>Architecture, purpose, and core product summary.</p>
+            </a>
+            <a class="link-card" href="./TEAM_AGREEMENT.md">
+              <strong>Team Agreement</strong>
+              <p>Roles, expectations, and collaboration structure.</p>
+            </a>
+            <a class="link-card" href="./MIDTERM_PRESENTATION.html">
+              <strong>Midterm Presentation</strong>
+              <p>Presentation-ready static artifact for review and demo support.</p>
+            </a>
+            <a class="link-card" href="./sprints/week-6.md">
+              <strong>Sprint History</strong>
+              <p>Weekly progress records and project evolution through sprint docs.</p>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>Campus Helper GitHub Pages package</span>
+        <span>Static site root: <code>docs/</code></span>
+      </footer>
+    </div>
+  </body>
+</html>

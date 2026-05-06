@@ -41,6 +41,50 @@ The project was developed for the Capstone Design Spring 2026 course by **AI Cam
 | Optional cache/rate limit | Redis / ioredis |
 | Deployment target | Vercel or Node.js hosting |
 
+## Deployment
+
+### GitHub Pages
+
+This repository is now prepared to publish a static project site from `docs/` through GitHub Pages.
+
+- Static site entry: `docs/index.html`
+- Pages workflow: `.github/workflows/deploy-pages.yml`
+- Static asset folder: `docs/assets/`
+
+To enable it on GitHub:
+
+1. Push the repository changes to GitHub.
+2. Open `Settings -> Pages`.
+3. Set the source to `GitHub Actions`.
+4. Let the `Deploy GitHub Pages` workflow publish the `docs/` folder.
+
+Important: GitHub Pages can host the public project website and documentation, but it cannot run the full authenticated app because this project uses server-side APIs, MongoDB, Cloudinary, and AI providers.
+
+### Full App Hosting
+
+For the real application, use a platform that supports Next.js server routes and environment variables, such as:
+
+- Vercel
+- Railway
+- Render
+- Any Node.js server or Docker host
+
+Required environment variables include:
+
+```env
+MONGODB_URI=
+REDIS_URL=
+OPENAI_API_KEY=
+GEMINI_API_KEY=
+GOOGLE_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
+```
+
 ## Repository Structure
 
 ```text
@@ -69,6 +113,9 @@ Create `.env.local` with:
 MONGODB_URI=
 REDIS_URL=
 OPENAI_API_KEY=
+GEMINI_API_KEY=
+GOOGLE_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
@@ -107,8 +154,7 @@ After promoting a user, log out and log back in so the JWT includes the admin ro
 - [Project Overview](docs/PROJECT.md)
 - [Team Agreement](docs/TEAM_AGREEMENT.md)
 - [Sprint Packets](docs/sprints)
-- [Issue Log](docs/Issue)
-- [OpenAI Setup](docs/OPENAI_SETUP.md)
+- [GitHub Pages Site](docs/index.html)
 
 ## Team
 

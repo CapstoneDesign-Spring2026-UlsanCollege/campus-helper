@@ -7,6 +7,8 @@ export interface IUser extends Document {
   role: 'student' | 'admin';
   department: string;
   studentId: string;
+  currentSemesterId?: mongoose.Types.ObjectId;
+  admissionYear?: number;
   isVerified: boolean;
   failedLoginAttempts: number;
   lockUntil?: Date;
@@ -24,6 +26,8 @@ const UserSchema: Schema = new Schema({
   role: { type: String, enum: ['student', 'admin'], default: 'student' },
   department: { type: String, required: true },
   studentId: { type: String, required: true, unique: true },
+  currentSemesterId: { type: Schema.Types.ObjectId, ref: 'Semester' },
+  admissionYear: { type: Number },
   isVerified: { type: Boolean, default: false },
   failedLoginAttempts: { type: Number, default: 0 },
   lockUntil: { type: Date },

@@ -1,20 +1,20 @@
 import mongoose from "mongoose";
+import { getMongoUri } from "@/lib/env";
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+type MongooseCache = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+};
 
-// Fallback logic added to prevent crashing if ENV is not set during initial build
-if (!MONGODB_URI) {
-  console.warn("Please define the MONGODB_URI environment variable inside .env.local");
-}
+const globalForMongoose = globalThis as typeof globalThis & {
+  mongoose?: MongooseCache;
+};
 
-let cached = (global as any).mongoose;
-
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
-}
+const cached: MongooseCache = globalForMongoose.mongoose ?? { conn: null, promise: null };
+globalForMongoose.mongoose = cached;
 
 async function connectDB() {
-  if (!MONGODB_URI) throw new Error("Missing MONGODB_URI");
+  const MONGODB_URI = getMongoUri();
 
   if (cached.conn) {
     return cached.conn;
@@ -25,9 +25,7 @@ async function connectDB() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => mongooseInstance);
   }
   
   try {

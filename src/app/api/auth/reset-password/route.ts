@@ -30,7 +30,7 @@ export async function POST(req: Request) {
      await user.save();
 
      return NextResponse.json({ message: 'Decryption re-secured successfully!' });
-  } catch(e) {
+  } catch {
      return NextResponse.json({ error: 'System processing collision occurs' }, { status: 500 });
   }
 }

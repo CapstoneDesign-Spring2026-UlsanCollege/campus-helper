@@ -87,7 +87,7 @@ NEXT_PUBLIC_APP_URL=https://your-project.vercel.app
 Notes:
 
 - Password reset links use `NEXT_PUBLIC_APP_URL`, `APP_URL`, or the Vercel domain automatically.
-- Redis is optional. Without `REDIS_URL`, login rate limiting runs in degraded mode instead of trying to connect to `localhost`.
+- Redis-backed rate limiting: `REDIS_URL` is **required in production**. In local development, login rate limiting is skipped when `REDIS_URL` is not set (instead of silently weakening protection).
 - JWT secrets are required in production. Runtime fallback secrets were removed.
 
 Required environment variables include:
@@ -159,10 +159,45 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 4. Build for production
+### 4. Quality gates (recommended before commits)
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+### 5. Build for production
 
 ```bash
 npm run build
+```
+
+## UI System Notes
+
+- Global visual tokens live in `src/app/globals.css` (Tailwind v4 `@theme`) and should stay aligned with `tailwind.config.ts`.
+- App fonts are loaded via `next/font` in `src/app/layout.tsx` (`Playfair_Display` for display, `DM_Sans` for UI text).
+- Primary dashboard navigation items are centralized in `src/lib/navigation.ts` to prevent sidebar/mobile drift.
+
+## Repository Hygiene
+
+- The repo should contain a single Next.js app rooted at `src/`.
+- Historical snapshot folders (for example `_pages_publish_clone/` and `_remote_campus_helper_inspect/`) are not part of the runnable product surface and should not be reintroduced.
+
+## Optional: Agent Skills (Skills CLI)
+
+This repo’s engineering workflow can be augmented with the Skills CLI (`npx skills`) from [skills.sh](https://skills.sh/).
+
+Example search:
+
+```bash
+npx skills find "nextjs best practices"
+```
+
+Example install (official source; verify the latest name on skills.sh before installing):
+
+```bash
+npx skills add vercel/nextjs-skills@next-best-practices -g -y
 ```
 
 ## Admin Access

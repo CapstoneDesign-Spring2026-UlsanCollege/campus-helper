@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 import { getJwtRefreshSecret } from '@/lib/env';
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get('refreshToken')?.value;
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ accessToken: tokens.accessToken });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

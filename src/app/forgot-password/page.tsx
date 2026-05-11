@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       } else {
          toast.error("Failed to sequence logic.");
       }
-    } catch(err) {
+    } catch {
       toast.error("Network error.");
     } finally {
       setIsLoading(false);
@@ -68,8 +68,12 @@ export default function ForgotPasswordPage() {
                <div className="w-16 h-16 rounded-full bg-brand-accent/10 border border-brand-accent/30 mx-auto flex items-center justify-center mb-4 text-brand-accent">
                   <Mail size={28} />
                </div>
-               <h3 className="text-lg font-bold text-white">Transmission Intercepted</h3>
-               <p className="text-gray-400 text-sm leading-relaxed">We generated your cryptographic key successfully. Because we are bypassing physical SMTP arrays for local infrastructure testing, please navigate directly to your <strong className="text-white">Next.js Server Terminal logs</strong> to physically copy and execute the secure reset link!</p>
+               <h3 className="text-lg font-bold text-white">Check your inbox</h3>
+               <p className="text-gray-400 text-sm leading-relaxed">
+                 If an account exists for this email and outbound mail is configured, you&apos;ll receive a reset link shortly.
+                 For local development without SMTP, configure <span className="text-white font-semibold">SMTP_USER</span> and{' '}
+                 <span className="text-white font-semibold">SMTP_PASS</span> in <span className="text-white font-semibold">.env.local</span>.
+               </p>
             </div>
           )}
         </Card>

@@ -1,86 +1,213 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { MessageCircle, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
+import { CommandHero } from '@/components/layout/CommandHero';
+import { fetchWithAuth, readApiError } from '@/lib/client-api';
+import toast from 'react-hot-toast';
+
+type PeerUser = {
+  _id: string;
+  name: string;
+  department?: string;
+  profilePicture?: string;
+  source?: 'friend' | 'message' | 'listing';
+  lastMessageAt?: string;
+};
+
+type ChatEntryContext = 'market' | 'lost-found' | 'notes' | 'network-search' | 'network-friend';
+
+type ChatMessage = {
+  _id: string;
+  sender: string;
+  content: string;
+  createdAt: string;
+  read?: boolean;
+};
+
+function readMyId() {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user) return '';
+    return String(JSON.parse(user).id ?? '');
+  } catch {
+    return '';
+  }
+}
+
+function getContextLabel(context: ChatEntryContext | null) {
+  switch (context) {
+    case 'market':
+      return 'Came from Marketplace';
+    case 'lost-found':
+      return 'Came from Lost & Found';
+    case 'notes':
+      return 'Came from Notes';
+    case 'network-search':
+      return 'Came from Network Search';
+    case 'network-friend':
+      return 'Came from My Friends';
+    default:
+      return '';
+  }
+}
 
 export default function ChatPage() {
-  const [friends, setFriends] = useState<any[]>([]);
-  const [activeChat, setActiveChat] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<PeerUser[]>([]);
+  const [activeChat, setActiveChat] = useState<PeerUser | null>(null);
+  const [activeContext, setActiveContext] = useState<ChatEntryContext | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [content, setContent] = useState('');
-  const [myId, setMyId] = useState('');
+  const [myId] = useState(() => readMyId());
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if(user) setMyId(JSON.parse(user).id);
-    fetchFriends();
+  const handleSelectChat = useCallback((peer: PeerUser, context: ChatEntryContext | null = null) => {
+    setActiveChat(peer);
+    setActiveContext(context);
+  }, []);
+
+  const fetchContacts = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/chat/contacts');
+      const data = await res.json();
+      if (res.ok) {
+        setContacts(Array.isArray(data.contacts) ? data.contacts : []);
+      } else {
+        toast.error(data.error || 'Could not load chat contacts.');
+      }
+    } catch {
+      toast.error('Could not load chat contacts.');
+    }
+  }, []);
+
+  const fetchMessages = useCallback(async (targetId: string) => {
+    try {
+      const res = await fetchWithAuth(`/api/chat?targetId=${targetId}`);
+      if(res.ok) setMessages(await res.json());
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
-    let interval: any;
-    if(activeChat) {
-      fetchMessages(activeChat._id);
-      interval = setInterval(() => fetchMessages(activeChat._id), 2500);
-    }
-    return () => clearInterval(interval);
+    queueMicrotask(() => void fetchContacts());
+  }, [fetchContacts]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('userId');
+    if (!userId || userId === myId) return;
+    const context = params.get('context');
+    const normalizedContext = (
+      context === 'market' ||
+      context === 'lost-found' ||
+      context === 'notes' ||
+      context === 'network-search' ||
+      context === 'network-friend'
+    ) ? context : null;
+
+    setActiveChat((current) => {
+      if (current?._id === userId) return current;
+
+      return {
+        _id: userId,
+        name: params.get('name') || 'Campus user',
+        department: params.get('department') || undefined,
+        profilePicture: params.get('profilePicture') || undefined,
+        source: 'listing',
+      };
+    });
+    setActiveContext(normalizedContext);
+  }, [myId]);
+
+  useEffect(() => {
+    if (!activeChat) return;
+
+    setContacts((currentContacts) => {
+      const matchingContact = currentContacts.find((contact) => contact._id === activeChat._id);
+
+      if (matchingContact) {
+        if (matchingContact !== activeChat) {
+          setActiveChat(matchingContact);
+        }
+        return currentContacts;
+      }
+
+      return [activeChat, ...currentContacts];
+    });
   }, [activeChat]);
+
+  useEffect(() => {
+    if (!activeChat) return;
+
+    const tick = () => void fetchMessages(activeChat._id);
+    queueMicrotask(tick);
+    const interval = setInterval(tick, 2500);
+
+    return () => clearInterval(interval);
+  }, [activeChat, fetchMessages]);
 
   useEffect(() => {
     if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  const fetchFriends = async () => {
-    try {
-      const res = await fetch('/api/friends', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }});
-      const data = await res.json();
-      if(res.ok) setFriends(data.connections || []);
-    } catch(e) {}
-  };
-
-  const fetchMessages = async (targetId: string) => {
-    try {
-      const res = await fetch(`/api/chat?targetId=${targetId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }});
-      if(res.ok) setMessages(await res.json());
-    } catch(e) {}
-  };
-
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if(!content.trim() || !activeChat) return;
     try {
-      await fetch('/api/chat', {
+      const res = await fetchWithAuth('/api/chat', {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
+         headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ targetId: activeChat._id, content })
       });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, 'Could not send your message.'));
+      }
       setContent('');
-      fetchMessages(activeChat._id);
-    } catch(e) {}
+      void fetchMessages(activeChat._id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not send your message.');
+    }
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] flex gap-6 pb-4">
-      <Card className="w-80 flex flex-col p-4 bg-black/40 border-white/5 backdrop-blur-xl shrink-0">
-         <h2 className="text-sm tracking-widest uppercase font-bold text-gray-400 mb-6 flex items-center gap-2"><MessageCircle size={18} className="text-brand-purple" /> Messages</h2>
-         <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-           {friends.map(f => {
-              const peer = f.requester._id === myId ? f.recipient : f.requester;
+    <div className="space-y-5 pb-4">
+      <CommandHero
+        eyebrow="Conversation Relay"
+        title="Chat"
+        description="Talk to classmates from listings, notes, or your network without losing context."
+        icon={MessageCircle}
+        stats={[
+          { label: 'Active contacts', value: contacts.length, tone: 'mint' },
+          { label: 'Open thread', value: activeChat?.name || 'None selected', tone: 'default' },
+        ]}
+      />
+      <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-4 lg:h-[calc(100vh-140px)] lg:flex-row lg:gap-6">
+      <Card className="flex shrink-0 flex-col border-white/5 bg-black/40 p-3 backdrop-blur-xl lg:w-80 lg:p-4">
+         <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-gray-400 lg:mb-6 lg:text-sm"><MessageCircle size={18} className="text-brand-purple" /> Messages</h2>
+         <div className="flex gap-2 overflow-x-auto pb-1 lg:block lg:flex-1 lg:space-y-2 lg:overflow-y-auto lg:pr-2">
+           {contacts.map((peer) => {
               const isActive = activeChat?._id === peer._id;
               return (
                  <div 
-                   key={f._id} 
-                   onClick={() => setActiveChat(peer)}
-                   className={`p-3 rounded-xl cursor-pointer transition-all flex items-center gap-3 ${isActive ? 'bg-brand-purple/20 border border-brand-purple/50' : 'hover:bg-white/5 border border-transparent'}`}
+                   key={peer._id} 
+                   onClick={() => handleSelectChat(peer, null)}
+                   className={`min-w-[220px] cursor-pointer rounded-xl border p-3 transition-all lg:min-w-0 ${isActive ? 'border-brand-purple/50 bg-brand-purple/20' : 'border-transparent hover:bg-white/5'}`}
                  >
+                   <div className="flex items-center gap-3">
                    <Avatar src={peer.profilePicture} name={peer.name} className={`h-10 w-10 text-sm ${isActive ? 'shadow-brand-indigo/50' : ''}`} />
-                   <div className="truncate">
+                   <div className="min-w-0 truncate">
                      <p className={`font-bold text-sm leading-tight truncate ${isActive ? 'text-white' : 'text-gray-300'}`}>{peer.name}</p>
-                     <p className="text-[10px] text-gray-500 uppercase tracking-widest truncate">{peer.department}</p>
+                     <p className="text-[10px] text-gray-500 uppercase tracking-widest truncate">
+                       {peer.department || (peer.source === 'listing' ? 'Direct listing chat' : 'Campus contact')}
+                     </p>
+                   </div>
                    </div>
                  </div>
               )
@@ -88,32 +215,39 @@ export default function ChatPage() {
          </div>
       </Card>
 
-      <Card className="flex-1 flex flex-col p-0 bg-black/20 border-white/5 relative overflow-hidden backdrop-blur-2xl">
+      <Card className="relative flex min-h-[65dvh] flex-1 flex-col overflow-hidden border-white/5 bg-black/20 p-0 backdrop-blur-2xl lg:min-h-0">
          {activeChat ? (
             <>
-              <div className="px-6 py-4 border-b border-white/5 bg-white/5 flex items-center justify-between z-10 shrink-0">
-                 <div className="flex items-center gap-4">
-                    <Avatar src={activeChat.profilePicture} name={activeChat.name} className="h-12 w-12 text-xl shadow-[0_0_15px_rgba(102,126,234,0.3)]" />
-                    <div>
-                       <h3 className="text-xl font-bold text-white leading-tight">{activeChat.name}</h3>
-                       <span className="text-[10px] text-brand-accent tracking-widest uppercase flex items-center gap-1">
-                         <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse block"></span> Secure Chat Active
-                       </span>
+              <div className="z-10 shrink-0 border-b border-white/5 bg-white/5 px-4 py-4 sm:px-5 lg:px-6">
+                 <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                    <Avatar src={activeChat.profilePicture} name={activeChat.name} className="h-11 w-11 text-lg shadow-[0_0_15px_rgba(102,126,234,0.3)] lg:h-12 lg:w-12 lg:text-xl" />
+                    <div className="min-w-0">
+                       <h3 className="truncate text-lg font-bold leading-tight text-white lg:text-xl">{activeChat.name}</h3>
+                       <div className="mt-1 flex flex-wrap items-center gap-2">
+                         <span className="text-[10px] text-brand-accent tracking-widest uppercase flex items-center gap-1">
+                           <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse block"></span> Secure Chat Active
+                         </span>
+                         {activeContext && (
+                           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                             {getContextLabel(activeContext)}
+                           </span>
+                         )}
+                       </div>
                     </div>
                  </div>
               </div>
               
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth z-10 relative">
+              <div ref={scrollRef} className="relative z-10 flex-1 space-y-4 overflow-y-auto p-4 scroll-smooth sm:p-5 lg:space-y-6 lg:p-6">
                  <AnimatePresence initial={false}>
-                    {messages.map((msg, i) => {
+                    {messages.map((msg) => {
                        const isMe = msg.sender === myId;
                        return (
                           <motion.div 
                             initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} 
                             key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                           >
-                             <div className={`max-w-[70%] p-3.5 px-5 rounded-2xl ${isMe ? 'bg-gradient-to-r from-brand-indigo to-brand-purple text-white rounded-br-sm shadow-xl' : 'bg-black/60 text-gray-200 rounded-bl-sm border border-white/10 backdrop-blur-md shadow-lg'}`}>
-                               <p className="text-[15px] leading-relaxed">{msg.content}</p>
+                             <div className={`max-w-[88%] rounded-2xl p-3.5 px-4 sm:max-w-[75%] sm:px-5 ${isMe ? 'bg-gradient-to-r from-brand-indigo to-brand-purple text-white rounded-br-sm shadow-xl' : 'bg-black/60 text-gray-200 rounded-bl-sm border border-white/10 backdrop-blur-md shadow-lg'}`}>
+                               <p className="text-sm leading-relaxed sm:text-[15px]">{msg.content}</p>
                                <span className="text-[9px] opacity-70 mt-2 flex items-center gap-1 uppercase tracking-widest font-mono">
                                   {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                   {isMe && <span className="ml-2 font-bold text-brand-accent">{msg.read ? "Read" : "Sent"}</span>}
@@ -131,28 +265,29 @@ export default function ChatPage() {
                  )}
               </div>
 
-              <div className="p-4 bg-black/60 border-t border-white/5 z-10 shrink-0">
-                 <form onSubmit={sendMessage} className="flex gap-3">
+              <div className="z-10 shrink-0 border-t border-white/5 bg-black/60 p-3 sm:p-4">
+                 <form onSubmit={sendMessage} className="flex items-end gap-2 sm:gap-3">
                     <input 
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 text-white outline-none focus:border-brand-purple transition-colors placeholder-gray-600"
+                      className="min-h-[52px] flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 focus:border-brand-purple sm:px-5"
                       placeholder="Type a message..."
                       value={content}
                       onChange={e => setContent(e.target.value)}
                     />
-                    <Button type="submit" disabled={!content.trim()} className="bg-brand-purple shrink-0 h-14 w-14 p-0 flex items-center justify-center rounded-xl hover:shadow-[0_0_20px_rgba(102,126,234,0.4)] transition-all">
+                    <Button type="submit" disabled={!content.trim()} className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl bg-brand-purple p-0 transition-all hover:shadow-[0_0_20px_rgba(102,126,234,0.4)] sm:h-14 sm:w-14">
                        <Send size={20} className="ml-1" />
                     </Button>
                  </form>
               </div>
             </>
          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+            <div className="flex flex-1 flex-col items-center justify-center px-6 text-center text-gray-500">
                <MessageCircle size={72} className="mb-6 opacity-10" />
                <p className="text-xl font-bold text-white mb-2">No Conversation Selected</p>
-               <p className="text-sm">Select a friend's name from the sidebar to chat.</p>
+               <p className="text-sm">Select a contact from the sidebar or jump in from a listing.</p>
             </div>
          )}
       </Card>
+      </div>
     </div>
   );
 }

@@ -32,3 +32,7 @@ export function getAppBaseUrl() {
 
   return 'http://localhost:3000';
 }
+
+export function getMongoUri() {
+  return requiredEnv('MONGODB_URI');
+}

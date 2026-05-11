@@ -8,6 +8,8 @@ import { Bot, Loader2, Paperclip, Send, Sparkles, Trash, User } from 'lucide-rea
 import { AnimatePresence, motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
+import { CommandHero } from '@/components/layout/CommandHero';
+import { fetchWithAuth, readApiError, uploadAsset } from '@/lib/client-api';
 
 function getStoredUserId() {
   try {
@@ -24,6 +26,20 @@ function getMessageText(message: UIMessage) {
     .filter(Boolean)
     .join('\n')
     .trim();
+}
+
+function getFriendlyChatError(error: Error) {
+  const message = error.message || '';
+
+  if (message.includes('insufficient_quota') || message.toLowerCase().includes('quota')) {
+    return 'OpenAI quota is exhausted for this API key. Add billing/credits in OpenAI or switch to a key from a project with available quota.';
+  }
+
+  if (message.toLowerCase().includes('api key')) {
+    return 'The OpenAI API key is missing or invalid. Check .env.local and restart the dev server.';
+  }
+
+  return message || 'The assistant could not respond.';
 }
 
 export default function AIPage() {
@@ -56,7 +72,7 @@ export default function AIPage() {
   const { messages, sendMessage, setMessages, status, error, clearError } = useChat<UIMessage>({
     transport,
     onError: (chatError) => {
-      toast.error(chatError.message || 'The assistant could not respond.');
+      toast.error(getFriendlyChatError(chatError));
     },
   });
 
@@ -68,15 +84,13 @@ export default function AIPage() {
       setUserId(nextUserId);
 
       try {
-        const res = await fetch(`/api/ai/chat?userId=${nextUserId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
-          },
-        });
+        const res = await fetchWithAuth(`/api/ai/chat?userId=${nextUserId}`);
         const data = await res.json();
 
         if (res.ok && Array.isArray(data.messages)) {
           setMessages(data.messages);
+        } else if (!res.ok) {
+          toast.error(data.error || 'Could not load your previous AI chat.');
         }
       } catch {
         toast.error('Could not load your previous AI chat.');
@@ -97,15 +111,15 @@ export default function AIPage() {
     clearError();
 
     try {
-      await fetch(`/api/ai/chat?userId=${userId}`, {
+      const res = await fetchWithAuth(`/api/ai/chat?userId=${userId}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
-        },
       });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, 'Could not clear AI history.'));
+      }
       toast.success('AI history cleared.');
-    } catch {
-      toast.error('History cleared locally, but the database did not update.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'History cleared locally, but the database did not update.');
     }
   };
 
@@ -125,24 +139,13 @@ export default function AIPage() {
     if (!file) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-
-      if (res.ok && data.url) {
-        setInput((prev) => `${prev}${prev.trim() ? '\n' : ''}[Attached File: ${data.url}] `);
-        toast.success('File attached.');
-      } else {
-        toast.error(data.error || 'Failed to upload file.');
-      }
-    } catch {
-      toast.error('Network error during upload.');
+      const asset = await uploadAsset(file, 'ulsan_ai_attachments');
+      setInput((prev) => `${prev}${prev.trim() ? '\n' : ''}[Attached File: ${asset.url}] `);
+      toast.success('File attached.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Network error during upload.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -153,8 +156,19 @@ export default function AIPage() {
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto flex h-[calc(100vh-112px)] max-w-6xl flex-col gap-4 pb-2 md:h-[calc(100vh-132px)]"
+      className="mx-auto flex max-w-6xl flex-col gap-4 pb-2"
     >
+      <CommandHero
+        eyebrow="AI Study Deck"
+        title="AI Assistant"
+        description="Ask for study help, summarize notes, plan your week, or attach a file. Your conversation stays tied to your campus account."
+        icon={Sparkles}
+        stats={[
+          { label: 'Saved messages', value: messages.length, tone: 'mint' },
+          { label: 'Assistant status', value: isBusy ? 'Responding' : 'Ready', tone: isBusy ? 'accent' : 'default' },
+        ]}
+      />
+      <div className="flex h-[calc(100vh-112px)] flex-col gap-4 md:h-[calc(100vh-132px)]">
       <header className="grid gap-4 overflow-hidden rounded-lg border border-white/10 bg-black/55 p-4 shadow-2xl shadow-black/40 md:grid-cols-[1fr_auto] md:p-5">
         <div className="relative">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-100">
@@ -260,7 +274,7 @@ export default function AIPage() {
 
         {error && (
           <div className="relative border-t border-red-300/20 bg-red-500/10 px-4 py-2 text-sm text-red-100">
-            {error.message || 'Something went wrong while contacting the assistant.'}
+            {getFriendlyChatError(error)}
           </div>
         )}
 
@@ -305,6 +319,7 @@ export default function AIPage() {
           </form>
         </div>
       </section>
+      </div>
     </motion.div>
   );
 }

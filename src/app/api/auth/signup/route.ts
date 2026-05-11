@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
+import Semester from '@/models/Semester';
 import { hashPassword } from '@/lib/auth';
 import { z } from 'zod';
 
@@ -11,15 +12,26 @@ const signupSchema = z.object({
   department: z.string().min(2),
   studentId: z.string().min(5),
   gender: z.enum(['male', 'female']),
+  currentSemesterId: z.string().min(1),
+  admissionYear: z.number().int().min(2000).max(2100).optional(),
   profilePicture: z.string().optional(),
 });
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const data = signupSchema.parse(body);
+    const parsed = signupSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid request' }, { status: 400 });
+    }
+    const data = parsed.data;
 
     await connectDB();
+
+    const semester = await Semester.findById(data.currentSemesterId);
+    if (!semester) {
+      return NextResponse.json({ error: 'Please choose a valid semester.' }, { status: 400 });
+    }
 
     const existingUser = await User.findOne({ $or: [{ email: data.email }, { studentId: data.studentId }] });
     if (existingUser) {
@@ -34,10 +46,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: 'User created successfully', userId: newUser._id }, { status: 201 });
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error: ' + (error.message || String(error)) }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Signup route error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

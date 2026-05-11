@@ -1,7 +1,7 @@
 # Team Agreement - Capstone Design
 
-**Date:** March 11, 2026
-**Team Name:** AI Campus Innovators
+**Date:** March 11, 2026  
+**Team Name:** AI Campus Innovators  
 **Repository:** https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper
 
 ## Members

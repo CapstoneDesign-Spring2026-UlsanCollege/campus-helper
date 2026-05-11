@@ -43,7 +43,7 @@ function ResetPasswordForm() {
       } else {
          toast.error(data.error || "System rejected protocol block.");
       }
-    } catch(err) {
+    } catch {
       toast.error("Major intercept. Network error.");
     } finally {
       setIsLoading(false);

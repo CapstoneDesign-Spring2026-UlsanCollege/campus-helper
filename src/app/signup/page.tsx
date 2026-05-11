@@ -1,19 +1,58 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Mail, Lock, User, Hash, GraduationCap, ArrowLeft, Sparkles } from 'lucide-react';
+import { Mail, Lock, User, Hash, GraduationCap, ArrowLeft, Sparkles, Layers3, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function SignupPage() {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', studentId: '', department: '', gender: 'male' });
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    studentId: '',
+    department: '',
+    gender: 'male',
+    currentSemesterId: '',
+    admissionYear: new Date().getFullYear(),
+  });
+  const [semesters, setSemesters] = useState<Array<{ _id: string; name: string; status: string; year: number; term: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSemesters, setIsLoadingSemesters] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    const loadSemesters = async () => {
+      setIsLoadingSemesters(true);
+      try {
+        const res = await fetch('/api/semesters');
+        const data = await res.json();
+        if (res.ok && Array.isArray(data)) {
+          setSemesters(data);
+          const active = data.find((semester) => semester.status === 'active') || data[0];
+          if (active) {
+            setFormData((current) => ({ ...current, currentSemesterId: active._id }));
+          }
+        }
+      } catch {
+        toast.error('Could not load semester options.');
+      } finally {
+        setIsLoadingSemesters(false);
+      }
+    };
+
+    void loadSemesters();
+  }, []);
+
+  const semesterSummary = useMemo(() => {
+    const selected = semesters.find((semester) => semester._id === formData.currentSemesterId);
+    return selected ? `${selected.name} • ${selected.status}` : 'Select your current semester';
+  }, [formData.currentSemesterId, semesters]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +72,7 @@ export default function SignupPage() {
       } else {
         toast.error(data.error || "Sign up failed. Please try again.");
       }
-    } catch(e) { toast.error("Connection error. Please try again."); }
+    } catch { toast.error("Connection error. Please try again."); }
     finally { setIsLoading(false); }
   };
 
@@ -53,27 +92,9 @@ export default function SignupPage() {
         }}
       />
 
-      {/* Enhanced Animated Background */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/15 via-transparent to-brand-purple/15" />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute top-1/4 right-1/4 w-72 h-72 bg-brand-accent/25 rounded-full blur-[120px]"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{ duration: 8, repeat: Infinity, delay: 1 }}
-          className="absolute bottom-1/4 left-1/4 w-72 h-72 bg-brand-purple/25 rounded-full blur-[120px]"
-        />
-        {/* Grid overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 40 40%22><path d=%22M0 20 L40 20 M20 0 L20 40%22 stroke=%22%23ffffff%22 stroke-width=%220.25%22 opacity=%220.03%22/></svg>')]"/>
+        <div className="absolute inset-0 bg-[url('/campus_bg.png')] bg-cover bg-center opacity-20" />
+        <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(4,7,15,0.95),rgba(4,7,15,0.78),rgba(4,7,15,0.92))]" />
       </div>
 
       <motion.div
@@ -102,10 +123,10 @@ export default function SignupPage() {
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-full bg-white/5 border border-white/10"
+            className="section-kicker mb-4"
           >
             <Sparkles size={14} className="text-brand-accent animate-pulse" />
-            <span className="text-xs font-medium text-gray-300">CREATE ACCOUNT</span>
+                <span>Semester-aware signup</span>
           </motion.div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
             Join <span className="text-gradient-accent">ULSAN CAMPUS+</span>
@@ -118,7 +139,7 @@ export default function SignupPage() {
         {/* Signup Form Card - Enhanced */}
         <Card
           variant="glow"
-          className="shadow-2xl shadow-black/50 p-6 sm:p-8 backdrop-blur-2xl relative overflow-hidden"
+          className="relative overflow-hidden p-6 shadow-2xl shadow-black/50 sm:p-8"
         >
           {/* Subtle glow effect at top */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-brand-accent/50 to-transparent" />
@@ -188,6 +209,46 @@ export default function SignupPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider font-bold">
+                  Current Semester
+                </label>
+                <div className="relative">
+                  <Layers3 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <select
+                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:border-brand-accent focus:shadow-[0_0_20px_rgba(0,245,255,0.2)] transition-all duration-300 min-h-[48px] hover:border-white/20"
+                    value={formData.currentSemesterId}
+                    onChange={e => setFormData({ ...formData, currentSemesterId: e.target.value })}
+                    disabled={isLoadingSemesters}
+                    required
+                  >
+                    <option value="">Select semester</option>
+                    {semesters.map((semester) => (
+                      <option key={semester._id} value={semester._id}>
+                        {semester.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">
+                  {semesterSummary}
+                </p>
+              </div>
+              <div>
+                <Input
+                  label="Admission Year"
+                  icon={CalendarDays}
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  value={String(formData.admissionYear)}
+                  onChange={e => setFormData({ ...formData, admissionYear: Number(e.target.value) })}
+                  required
+                />
+              </div>
+            </div>
+
             {/* Password */}
             <div>
               <Input
@@ -207,6 +268,7 @@ export default function SignupPage() {
               <Button
                 type="submit"
                 isLoading={isLoading}
+                disabled={isLoadingSemesters || !formData.currentSemesterId}
                 size="lg"
                 variant="accent"
                 glow

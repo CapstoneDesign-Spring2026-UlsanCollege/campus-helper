@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
 import { comparePassword, generateTokens } from '@/lib/auth';
-import { redis } from '@/lib/redis';
+import { isRedisClientConfigured, redis } from '@/lib/redis';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
@@ -16,17 +16,22 @@ export async function POST(req: Request) {
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     const rateLimitKey = `rate-limit:login:${ip}`;
     
-    // Redis Rate Limit System (Wrapped for Vercel TCP Fault Tolerance)
-    try {
-       const requests = await redis.incr(rateLimitKey);
-       if (requests === 1) await redis.expire(rateLimitKey, 60);
-       if (requests > 10) return NextResponse.json({ error: 'Too many login attempts. Try again later.' }, { status: 429 });
-    } catch(redisError) {
-       console.warn("Serverless TCP dropped. Bypassing rate constraints safely.");
+    if (isRedisClientConfigured()) {
+      const requests = await redis.incr(rateLimitKey);
+      if (requests === 1) await redis.expire(rateLimitKey, 60);
+      if (requests > 10) {
+        return NextResponse.json({ error: 'Too many login attempts. Try again later.' }, { status: 429 });
+      }
+    } else if (process.env.NODE_ENV !== 'production') {
+      console.warn('[login] REDIS_URL not set; skipping Redis rate limiting (development mode).');
     }
 
     const body = await req.json();
-    const data = loginSchema.parse(body);
+    const parsed = loginSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid request' }, { status: 400 });
+    }
+    const data = parsed.data;
 
     await connectDB();
 
@@ -69,9 +74,21 @@ export async function POST(req: Request) {
       path: '/',
     });
 
-    return NextResponse.json({ accessToken, user: { id: user._id, name: user.name, role: user.role, gender: user.gender, profilePicture: user.profilePicture, department: user.department } });
-  } catch (error: any) {
-    console.error("VERCEL SERVER CRASH:", error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({
+      accessToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        gender: user.gender,
+        profilePicture: user.profilePicture,
+        department: user.department,
+        currentSemesterId: user.currentSemesterId,
+        admissionYear: user.admissionYear,
+      }
+    });
+  } catch (error: unknown) {
+    console.error('Login route error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

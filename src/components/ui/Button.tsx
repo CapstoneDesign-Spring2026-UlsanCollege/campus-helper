@@ -14,36 +14,36 @@ interface ButtonProps extends Omit<HTMLMotionProps<"button">, 'children'> {
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, glow = false, children, ...props }, ref) => {
-    const baseClass = "relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-lg overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed group";
+    const baseClass = "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl border font-semibold tracking-[0.01em] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50";
 
     const sizeClasses = {
-      sm: "px-4 py-2 text-sm min-h-[40px]",
-      md: "px-6 py-2.5 text-base min-h-[48px]",
-      lg: "px-8 py-3.5 text-lg min-h-[56px]",
+      sm: "min-h-[40px] px-4 py-2 text-sm",
+      md: "min-h-[48px] px-5 py-2.5 text-sm md:text-[15px]",
+      lg: "min-h-[54px] px-7 py-3 text-base md:text-lg",
     };
 
     const variants = {
-      primary: "bg-emerald-300 text-black hover:bg-cyan-200 hover:-translate-y-0.5",
-      accent: "bg-cyan-200 text-black font-semibold hover:bg-white hover:-translate-y-0.5",
-      glass: "glass-panel text-white hover:bg-white/10 hover:border-white/25",
-      ghost: "text-gray-300 hover:text-white hover:bg-white/10",
-      danger: "bg-brand-danger text-white hover:bg-red-400 hover:-translate-y-0.5",
+      primary: "border-transparent bg-[linear-gradient(135deg,#a8f3d7_0%,#7ce9d0_55%,#8bc9ff_100%)] text-[#041017] shadow-[0_14px_30px_rgba(124,233,208,0.18)] hover:-translate-y-0.5 hover:shadow-[0_18px_35px_rgba(124,233,208,0.24)]",
+      accent: "border-transparent bg-[linear-gradient(135deg,#ffc071_0%,#ffd59e_100%)] text-[#17100a] shadow-[0_14px_30px_rgba(255,192,113,0.16)] hover:-translate-y-0.5 hover:shadow-[0_18px_35px_rgba(255,192,113,0.22)]",
+      glass: "glass-panel border-white/10 bg-white/[0.03] text-white hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]",
+      ghost: "border-white/8 bg-transparent text-slate-300 hover:border-white/14 hover:bg-white/[0.04] hover:text-white",
+      danger: "border-red-400/20 bg-[linear-gradient(135deg,rgba(255,108,134,0.22),rgba(117,18,42,0.5))] text-white hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,rgba(255,108,134,0.3),rgba(117,18,42,0.62))]",
     };
 
-    const glowEffect = glow ? "relative overflow-hidden" : "";
+    const glowEffect = glow ? "shadow-[0_0_0_1px_rgba(124,233,208,0.08),0_18px_40px_rgba(124,233,208,0.18)]" : "";
 
     return (
       <motion.button
         ref={ref}
         whileTap={{ scale: 0.97 }}
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: 1.01 }}
         className={cn(baseClass, sizeClasses[size], variants[variant], glowEffect, className)}
         disabled={isLoading || props.disabled}
         {...props}
       >
         {/* Glow overlay effect */}
         {glow && !isLoading && (
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/12 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
         )}
 
         {isLoading ? (

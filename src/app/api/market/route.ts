@@ -13,7 +13,7 @@ function getUserId(req: Request) {
   } catch { return null; }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     await connectDB();
     const items = await MarketItem.find({ status: 'available' }).populate('sellerId', 'name email department profilePicture').sort({ createdAt: -1 });
@@ -70,15 +70,23 @@ export async function PUT(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { _id, ...updates } = body;
+  const { _id } = body;
   if (!_id) return NextResponse.json({ error: 'Missing ID parameter' }, { status: 400 });
+
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const description = typeof body.description === 'string' ? body.description.trim() : '';
+  const price = Number(body.price);
+
+  if (!title || !description || Number.isNaN(price) || price < 0) {
+    return NextResponse.json({ error: 'Please enter a title, description, and valid price.' }, { status: 400 });
+  }
 
   await connectDB();
   const item = await MarketItem.findOne({ _id });
   if (!item) return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
   if (item.sellerId.toString() !== userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  Object.assign(item, updates);
+  Object.assign(item, { title, description, price });
   await item.save();
 
   return NextResponse.json(item);

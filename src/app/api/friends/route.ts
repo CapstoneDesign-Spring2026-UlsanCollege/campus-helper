@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import Friendship from '@/models/Friendship';
 import User from '@/models/User';
+import { createNotification } from '@/lib/notifications';
 import jwt from 'jsonwebtoken';
 import { getJwtAccessSecret } from '@/lib/env';
 
@@ -53,6 +54,16 @@ export async function POST(req: Request) {
   if(existing) return NextResponse.json({ error: 'Friendship already exists or pending' }, { status: 400 });
 
   const doc = await Friendship.create({ requester: userId, recipient: targetId });
+  const requester = await User.findById(userId, 'name').lean();
+  if (requester?.name) {
+    await createNotification({
+      userId: targetId,
+      type: 'friend_request',
+      title: 'New friend request',
+      body: `${requester.name} sent you a friend request.`,
+      link: '/dashboard/network',
+    });
+  }
   return NextResponse.json(doc);
 }
 
@@ -64,6 +75,16 @@ export async function PUT(req: Request) {
 
   if (action === 'accept') {
     const doc = await Friendship.findOneAndUpdate({ _id: friendshipId, recipient: userId }, { status: 'accepted' }, { new: true });
+    const accepter = await User.findById(userId, 'name').lean();
+    if (doc && accepter?.name) {
+      await createNotification({
+        userId: String(doc.requester),
+        type: 'friend_accept',
+        title: 'Friend request accepted',
+        body: `${accepter.name} accepted your connection request.`,
+        link: '/dashboard/network',
+      });
+    }
     return NextResponse.json(doc);
   } else {
     await Friendship.findOneAndDelete({ _id: friendshipId, recipient: userId });

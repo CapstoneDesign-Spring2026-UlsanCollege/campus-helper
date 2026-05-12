@@ -12,28 +12,28 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, icon: Icon, error, label, variant = 'default', ...props }, ref) => {
-    const baseClass = "w-full rounded-lg text-white placeholder-gray-500 outline-none transition-all duration-300";
+    const baseClass = "w-full rounded-2xl text-white placeholder:text-slate-500 outline-none transition-all duration-200";
 
     const variants = {
-      default: "bg-white/5 border border-white/10 hover:border-white/20 focus:bg-white/10",
-      filled: "bg-white/10 border border-transparent hover:border-white/20 focus:bg-white/15",
-      bordered: "bg-transparent border border-white/20 hover:border-white/30 focus:bg-white/5",
+      default: "border border-white/10 bg-[rgba(255,255,255,0.03)] hover:border-white/16 focus:bg-white/[0.06]",
+      filled: "border border-transparent bg-[rgba(255,255,255,0.06)] hover:border-white/16 focus:bg-white/[0.08]",
+      bordered: "border border-white/16 bg-transparent hover:border-white/24 focus:bg-white/[0.03]",
     };
 
     const focusClass = error
-      ? "focus:border-red-500 focus:shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-      : "focus:border-brand-purple focus:shadow-[0_0_20px_rgba(147,51,234,0.3)]";
+      ? "focus:border-red-400 focus:shadow-[0_0_0_4px_rgba(255,108,134,0.1)]"
+      : "focus:border-brand-indigo focus:shadow-[0_0_0_4px_rgba(124,233,208,0.08)]";
 
     return (
       <div className="w-full">
         {label && (
-          <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider font-bold">
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
             {label}
           </label>
         )}
         <div className="relative flex items-center w-full">
           {Icon && (
-            <div className="absolute left-4 text-gray-400 flex-shrink-0 transition-colors group-focus-within:text-brand-purple">
+            <div className="absolute left-4 text-slate-500 flex-shrink-0 transition-colors group-focus-within:text-brand-indigo">
               <Icon size={18} />
             </div>
           )}
@@ -44,7 +44,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               variants[variant],
               focusClass,
               Icon ? "pl-11 pr-4" : "px-4",
-              "py-3",
+              "py-3.5",
               error && "border-red-500 focus:border-red-500",
               "min-h-[48px]",
               className

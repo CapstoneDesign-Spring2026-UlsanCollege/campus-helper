@@ -1,71 +1,243 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Plus, Trash2, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, X, Layers3, Building2, Check, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CommandHero } from '@/components/layout/CommandHero';
+import { fetchWithAuth, readApiError } from '@/lib/client-api';
+import toast from 'react-hot-toast';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+interface TimetableClass { _id: string; day: string; subject: string; time: string; room?: string; }
+interface TimetableEntry extends TimetableClass { kind: 'official' | 'custom'; }
+interface SemesterOption { _id: string; name: string; status: string; }
+
 export default function TimetablePage() {
-  const [classes, setClasses] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<TimetableClass[]>([]);
+  const [customClasses, setCustomClasses] = useState<TimetableClass[]>([]);
+  const [semesters, setSemesters] = useState<SemesterOption[]>([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState('');
+  const [department, setDepartment] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState({ day: 'Monday', subject: '', time: '' });
+  const [isSemesterMenuOpen, setIsSemesterMenuOpen] = useState(false);
+  const [formData, setFormData] = useState({ day: 'Monday', subject: '', time: '', room: '' });
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchTimetable();
+  const fetchTimetable = useCallback(async (semesterId: string) => {
+    if (!semesterId) return;
+    try {
+      const res = await fetchWithAuth(`/api/timetable?semesterId=${semesterId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setTemplates(Array.isArray(data.templates) ? data.templates : []);
+        setCustomClasses(Array.isArray(data.custom) ? data.custom : []);
+        setDepartment(data.department || '');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load timetable data.');
+    }
   }, []);
 
-  const fetchTimetable = async () => {
-    try {
-      const res = await fetch('/api/timetable');
-      const data = await res.json();
-      if(Array.isArray(data)) setClasses(data);
-    } catch(e) {}
-  };
+  useEffect(() => {
+    const loadSemesters = async () => {
+      try {
+        const [semesterRes] = await Promise.all([
+          fetch('/api/semesters'),
+        ]);
+        const semesterData = await semesterRes.json();
+        if (semesterRes.ok && Array.isArray(semesterData)) {
+          setSemesters(semesterData);
+          const storedUser = localStorage.getItem('user');
+          const parsedUser = storedUser ? JSON.parse(storedUser) as { currentSemesterId?: string } : {};
+          const activeSemester = semesterData.find((semester) => semester.status === 'active') || semesterData[0];
+          const nextSemesterId = parsedUser.currentSemesterId || activeSemester?._id || '';
+          setSelectedSemesterId(nextSemesterId);
+          if (nextSemesterId) {
+            void fetchTimetable(nextSemesterId);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    void loadSemesters();
+  }, [fetchTimetable]);
+
+  useEffect(() => {
+    if (selectedSemesterId) {
+      void fetchTimetable(selectedSemesterId);
+    }
+  }, [fetchTimetable, selectedSemesterId]);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch('/api/timetable', {
+      const res = await fetchWithAuth('/api/timetable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, semesterId: selectedSemesterId })
       });
       if (res.ok) {
-         setFormData({ day: 'Monday', subject: '', time: '' });
+         setFormData({ day: 'Monday', subject: '', time: '', room: '' });
          setIsAdding(false);
-         fetchTimetable();
+         void fetchTimetable(selectedSemesterId);
+      } else {
+         toast.error(await readApiError(res, 'Could not save the class.'));
       }
-    } catch(e) {} finally { setIsLoading(false); }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not save the class.');
+    } finally { setIsLoading(false); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/timetable?id=${id}`, { method: 'DELETE' });
-      fetchTimetable();
-    } catch(e) {}
+      const res = await fetchWithAuth(`/api/timetable?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, 'Could not delete the class.'));
+      }
+      void fetchTimetable(selectedSemesterId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not delete the class.');
+    }
   };
+
+  const mergedByDay = useMemo(() => {
+    const allClasses: TimetableEntry[] = [
+      ...templates.map((item) => ({ ...item, kind: 'official' as const })),
+      ...customClasses.map((item) => ({ ...item, kind: 'custom' as const })),
+    ];
+    return DAYS.map((day) => ({
+      day,
+      classes: allClasses.filter((item) => item.day === day),
+    }));
+  }, [customClasses, templates]);
+
+  const selectedSemester = useMemo(
+    () => semesters.find((semester) => semester._id === selectedSemesterId) || null,
+    [selectedSemesterId, semesters]
+  );
+
+  useEffect(() => {
+    if (!isSemesterMenuOpen) return;
+
+    const closeMenu = () => setIsSemesterMenuOpen(false);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, [isSemesterMenuOpen]);
 
   return (
     <div className="space-y-6 md:space-y-8 pb-12">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">Timetable</h1>
-          <p className="text-sm md:text-base text-gray-400">Manage your weekly schedule.</p>
+      <div className="space-y-4">
+        <CommandHero
+          eyebrow="Schedule Matrix"
+          title="Timetable"
+          description="Load your semester template, layer in custom classes, and keep the week readable on both desktop and mobile."
+          icon={CalendarIcon}
+          stats={[
+            { label: 'Official entries', value: templates.length, tone: 'mint' },
+            { label: 'Custom entries', value: customClasses.length, tone: 'accent' },
+          ]}
+        />
+        <div className="flex justify-end">
+          <Button
+            onClick={() => setIsAdding(!isAdding)}
+            variant={isAdding ? "ghost" : "primary"}
+            className="min-h-[44px]"
+          >
+            {isAdding ? <><X size={18} className="mr-2" /> Cancel</> : <><Plus size={18} className="mr-2" /> Add Class</>}
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsAdding(!isAdding)}
-          variant={isAdding ? "ghost" : "primary"}
-          className="min-h-[44px]"
-        >
-          {isAdding ? <><X size={18} className="mr-2" /> Cancel</> : <><Plus size={18} className="mr-2" /> Add Class</>}
-        </Button>
-      </header>
+      </div>
+
+      <Card className="border border-white/10 bg-black/35">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">Semester</label>
+            <div className="relative">
+              <Layers3 size={18} className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-slate-500" />
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsSemesterMenuOpen((current) => !current);
+                }}
+                className="flex h-12 w-full items-center justify-between rounded-xl border border-white/10 bg-black/45 pl-11 pr-4 text-left text-white outline-none transition hover:border-white/20 focus:border-brand-accent"
+              >
+                <div className="min-w-0">
+                  <span className="block truncate text-base font-medium">
+                    {selectedSemester?.name || 'Select a semester'}
+                  </span>
+                  {selectedSemester?.status && (
+                    <span className="mt-0.5 block text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                      {selectedSemester.status}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown
+                  size={18}
+                  className={`ml-3 flex-shrink-0 text-slate-400 transition-transform ${isSemesterMenuOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {isSemesterMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-white/10 bg-[#060b15] shadow-2xl shadow-black/50"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className="max-h-72 overflow-y-auto p-2">
+                      {semesters.map((semester) => {
+                        const isSelected = semester._id === selectedSemesterId;
+                        return (
+                          <button
+                            key={semester._id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSemesterId(semester._id);
+                              setIsSemesterMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition ${
+                              isSelected
+                                ? 'bg-brand-accent/15 text-white'
+                                : 'text-slate-200 hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{semester.name}</p>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                {semester.status}
+                              </p>
+                            </div>
+                            {isSelected && <Check size={16} className="ml-3 flex-shrink-0 text-brand-accent" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Department template</p>
+            <p className="mt-2 text-lg font-semibold text-white">{department || 'Not set'}</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Loaded entries</p>
+            <p className="mt-2 text-lg font-semibold text-emerald-100">{templates.length} official / {customClasses.length} custom</p>
+          </div>
+        </div>
+      </Card>
 
       <AnimatePresence>
         {isAdding && (
@@ -106,8 +278,17 @@ export default function TimetablePage() {
                      className="min-h-[44px]"
                    />
                  </div>
+                 <div>
+                   <label className="text-xs text-gray-400 mb-1 block">Room / Note</label>
+                   <Input
+                     placeholder="e.g. ICT 304"
+                     value={formData.room}
+                     onChange={e => setFormData({...formData, room: e.target.value})}
+                     className="min-h-[44px]"
+                   />
+                 </div>
                  <Button type="submit" isLoading={isLoading} className="min-h-[44px]">
-                   Save Class
+                   Save Custom Class
                  </Button>
               </form>
             </Card>
@@ -117,9 +298,9 @@ export default function TimetablePage() {
 
       {/* Day Tabs for Mobile */}
       <div className="lg:hidden">
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           {DAYS.map(day => {
-            const count = classes.filter(c => c.day === day).length;
+            const count = templates.filter(c => c.day === day).length + customClasses.filter(c => c.day === day).length;
             return (
               <button
                 key={day}
@@ -138,8 +319,7 @@ export default function TimetablePage() {
 
       {/* Schedule Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        {DAYS.map((day, index) => {
-           const dayClasses = classes.filter(c => c.day === day);
+        {mergedByDay.map(({ day, classes: dayClasses }, index) => {
            if(dayClasses.length === 0 && !isAdding) return null;
 
            return (
@@ -166,15 +346,27 @@ export default function TimetablePage() {
                          key={cls._id}
                          className="group relative p-3 rounded-xl bg-white/5 border border-white/5 hover:border-brand-purple/50 transition-all"
                        >
-                          <p className="text-xs font-semibold text-brand-purple mb-1">{cls.time}</p>
+                         <p className="text-xs font-semibold text-brand-purple mb-1">{cls.time}</p>
                           <h4 className="text-white text-sm font-medium pr-8 break-words">{cls.subject}</h4>
-                          <button
-                            onClick={() => handleDelete(cls._id)}
-                            className="absolute right-2 top-2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
-                            aria-label="Delete class"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {cls.room && (
+                            <p className="mt-1 text-[11px] text-slate-500 flex items-center gap-1">
+                              <Building2 size={11} />
+                              {cls.room}
+                            </p>
+                          )}
+                          {cls.kind === 'custom' ? (
+                            <button
+                              onClick={() => handleDelete(cls._id)}
+                              className="absolute right-2 top-2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
+                              aria-label="Delete class"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          ) : (
+                            <span className="absolute right-2 top-2 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-200">
+                              Official
+                            </span>
+                          )}
                        </motion.div>
                      ))
                    )}

@@ -25,22 +25,47 @@ export async function PUT(req: Request) {
     const userId = getUserId(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { profilePicture } = await req.json();
-    if (typeof profilePicture !== 'string') {
-      return NextResponse.json({ error: 'Profile picture URL is required' }, { status: 400 });
+    const { profilePicture, currentSemesterId, admissionYear } = await req.json();
+    const updateFields: Record<string, unknown> = {};
+
+    if (typeof profilePicture === 'string') {
+      updateFields.profilePicture = profilePicture.trim();
+    }
+
+    if (typeof currentSemesterId === 'string' && currentSemesterId.trim()) {
+      updateFields.currentSemesterId = currentSemesterId.trim();
+    }
+
+    if (typeof admissionYear === 'number') {
+      updateFields.admissionYear = admissionYear;
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+      return NextResponse.json({ error: 'No profile fields were provided' }, { status: 400 });
     }
 
     await connectDB();
     const updatedUser = await User.findByIdAndUpdate(
        userId,
-       { $set: { profilePicture: profilePicture.trim() } },
+       { $set: updateFields },
        { new: true }
     ).select('-password');
 
     if (!updatedUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-
-    return NextResponse.json({ message: 'Profile updated', user: { id: updatedUser._id, name: updatedUser.name, role: updatedUser.role, gender: updatedUser.gender, profilePicture: updatedUser.profilePicture, department: updatedUser.department } });
-  } catch (error) {
+    return NextResponse.json({
+      message: 'Profile updated',
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        gender: updatedUser.gender,
+        profilePicture: updatedUser.profilePicture,
+        department: updatedUser.department,
+        currentSemesterId: updatedUser.currentSemesterId,
+        admissionYear: updatedUser.admissionYear,
+      }
+    });
+  } catch {
     return NextResponse.json({ error: 'Server disruption' }, { status: 500 });
   }
 }

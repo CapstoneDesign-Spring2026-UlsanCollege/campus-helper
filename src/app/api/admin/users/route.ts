@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     await connectDB();
     const users = await User.find({}, '-password').sort({ createdAt: -1 });
     return NextResponse.json(users);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -58,7 +58,7 @@ export async function DELETE(req: Request) {
     await Note.deleteMany({ uploadedBy: userId });
 
     return NextResponse.json({ message: 'User deleted successfully' });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

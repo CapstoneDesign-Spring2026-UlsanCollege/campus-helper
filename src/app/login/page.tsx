@@ -36,7 +36,7 @@ export default function LoginPage() {
       } else {
         toast.error(data.error || "Invalid credentials. Please try again.");
       }
-    } catch(e) { toast.error("Connection error. Please try again."); }
+    } catch { toast.error("Connection error. Please try again."); }
     finally { setIsLoading(false); }
   };
 
@@ -56,27 +56,9 @@ export default function LoginPage() {
         }}
       />
 
-      {/* Enhanced Animated Background */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-purple/15 via-transparent to-brand-accent/15" />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-purple/25 rounded-full blur-[120px]"
-        />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{ duration: 10, repeat: Infinity, delay: 1 }}
-          className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-brand-accent/25 rounded-full blur-[120px]"
-        />
-        {/* Grid overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 40 40%22><path d=%22M0 20 L40 20 M20 0 L20 40%22 stroke=%22%23ffffff%22 stroke-width=%220.25%22 opacity=%220.03%22/></svg>')]"/>
+        <div className="absolute inset-0 bg-[url('/campus_bg.png')] bg-cover bg-center opacity-20" />
+        <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(4,7,15,0.95),rgba(4,7,15,0.78),rgba(4,7,15,0.92))]" />
       </div>
 
       <motion.div
@@ -105,10 +87,10 @@ export default function LoginPage() {
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-full bg-white/5 border border-white/10"
+          className="section-kicker mb-4"
           >
             <Zap size={14} className="text-brand-accent" />
-            <span className="text-xs font-medium text-gray-300">SECURE LOGIN</span>
+            <span>Secure login</span>
           </motion.div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-2">
             Welcome Back
@@ -120,8 +102,8 @@ export default function LoginPage() {
 
         {/* Login Form Card - Enhanced */}
         <Card
-          variant="bordered"
-          className="shadow-2xl shadow-black/50 p-6 sm:p-8 backdrop-blur-2xl relative overflow-hidden"
+          variant="elevated"
+          className="relative overflow-hidden p-6 shadow-2xl shadow-black/50 sm:p-8"
         >
           {/* Subtle glow effect at top */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-brand-accent/50 to-transparent" />
@@ -190,7 +172,7 @@ export default function LoginPage() {
           transition={{ delay: 0.4 }}
           className="text-center text-gray-500 mt-6 text-sm"
         >
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link
             href="/signup"
             className="text-brand-accent hover:text-white font-medium transition-colors border-b border-transparent hover:border-brand-accent/50"

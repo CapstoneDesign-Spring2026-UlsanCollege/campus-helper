@@ -2,7 +2,7 @@
 
 ## Team Information
 
-**Team Name**: AI Campus Innovators
+**Team Name**: AI Campus Innovators  
 **Repository**: https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper
 
 | Name | Role Rotation (First Week) |
@@ -86,3 +86,36 @@ The MVP is a working Next.js web application where students can sign up, log in,
 - Keep all core workflows demoable.
 - Document progress through sprint packets.
 - Add features gradually and verify with build/type checks.
+
+## Engineering Conventions (Campus Helper)
+
+### Quality gates
+
+Run before demos, merges, or deployment tags:
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+### UI architecture
+
+- **Tokens**: prefer `src/app/globals.css` (`@theme`) as the source of truth for brand colors and surfaces; keep `tailwind.config.ts` aligned for utility class usage.
+- **Typography**: `next/font` is configured in `src/app/layout.tsx` (display + body).
+- **Navigation**: dashboard navigation labels/links are centralized in `src/lib/navigation.ts`.
+
+### Security notes (high-signal)
+
+- Password reset flows must never log raw reset URLs/tokens.
+- Notes uploads must attribute `uploadedBy` from verified JWT access tokens (not client-supplied IDs).
+- Timetable rows are scoped per authenticated user (JWT), not `mock-user-id` placeholders.
+
+### Infrastructure expectations
+
+- **MongoDB**: `MONGODB_URI` is required for database-backed routes at runtime.
+- **Redis**: `REDIS_URL` is required in production for login rate limiting (development can run without it; limiting is skipped locally).
+
+### Repository hygiene
+
+The production app lives under `src/`. Do not reintroduce duplicate “snapshot” trees at the repository root; they create duplicate dependencies, confuse linting, and are easy to accidentally ship.

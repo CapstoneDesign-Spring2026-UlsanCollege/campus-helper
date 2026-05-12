@@ -24,7 +24,7 @@ export async function GET(req: Request) {
      });
 
      return NextResponse.json({ count });
-  } catch(e) {
+  } catch {
      return NextResponse.json({ error: 'Failed to compute array', count: 0 }, { status: 500 });
   }
 }

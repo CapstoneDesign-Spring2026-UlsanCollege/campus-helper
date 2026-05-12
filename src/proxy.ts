@@ -4,7 +4,7 @@ import * as jose from 'jose';
 import { getJwtAccessSecret, getJwtRefreshSecret } from '@/lib/env';
 
 export async function proxy(request: NextRequest) {
-  const protectedRoutes = ['/dashboard', '/api/notes', '/api/ai', '/api/timetable', '/api/market', '/api/lost-found', '/api/friends', '/api/chat'];
+  const protectedRoutes = ['/dashboard', '/api/notes', '/api/upload', '/api/ai', '/api/timetable', '/api/market', '/api/lost-found', '/api/friends', '/api/chat', '/api/notifications'];
   const isProtected = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
   if (!isProtected) {
@@ -43,5 +43,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/api/notes/:path*', '/api/ai/:path*', '/api/timetable/:path*', '/api/market/:path*', '/api/lost-found/:path*', '/api/friends/:path*', '/api/chat/:path*'],
+  matcher: ['/dashboard/:path*', '/api/notes/:path*', '/api/upload/:path*', '/api/ai/:path*', '/api/timetable/:path*', '/api/market/:path*', '/api/lost-found/:path*', '/api/friends/:path*', '/api/chat/:path*', '/api/notifications/:path*'],
 };

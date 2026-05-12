@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import Note from '@/models/Note';
-import { v2 as cloudinary } from 'cloudinary';
+import jwt from 'jsonwebtoken';
+import { getJwtAccessSecret } from '@/lib/env';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+function getUserIdFromRequest(req: Request) {
+  const token = req.headers.get('authorization')?.split(' ')[1];
+  if (!token) return null;
+
+  try {
+    const payload = jwt.verify(token, getJwtAccessSecret()) as { userId?: string; id?: string };
+    return payload.userId || payload.id || null;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(req: Request) {
   try {
@@ -16,52 +23,61 @@ export async function GET(req: Request) {
     
     await connectDB();
     const query = department ? { department } : {};
-    const notes = await Note.find(query).sort({ createdAt: -1 });
+    const notes = await Note.find(query)
+      .populate('uploadedBy', 'name department profilePicture')
+      .sort({ createdAt: -1 });
     
     return NextResponse.json(notes);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    const title = formData.get('title') as string;
-    const department = formData.get('department') as string;
-    const userId = formData.get('userId') as string || '650e8b1b2f8a4b001c8e4b5a'; // Fallback mock exact ObjectId
-
-    if (!file || !title || !department) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const userId = getUserIdFromRequest(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'Your session expired. Please sign in again.' }, { status: 401 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const body = await req.json();
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const department = typeof body.department === 'string' ? body.department.trim() : '';
+    const fileUrl = typeof body.fileUrl === 'string' ? body.fileUrl.trim() : '';
+    const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
+    const fileType = typeof body.fileType === 'string' ? body.fileType.trim() : '';
+    const thumbnailUrl = typeof body.thumbnailUrl === 'string' ? body.thumbnailUrl.trim() : '';
 
-    // Upload Buffer directly to Cloudinary
-    const fileUrl = await new Promise<string>((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { resource_type: 'auto', folder: 'ulsan_campus_notes' },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result!.secure_url);
-        }
-      );
-      uploadStream.end(buffer);
-    });
+    if (!title) {
+      return NextResponse.json({ error: 'Please enter a note title.' }, { status: 400 });
+    }
+
+    if (!department) {
+      return NextResponse.json({ error: 'Please choose a department for this note.' }, { status: 400 });
+    }
+
+    if (!fileUrl) {
+      return NextResponse.json({ error: 'The file uploaded, but the note is missing its file URL.' }, { status: 400 });
+    }
 
     await connectDB();
     const newNote = await Note.create({
       title,
       department,
       fileUrl,
+      fileName: fileName || undefined,
+      fileType: fileType || undefined,
+      thumbnailUrl: thumbnailUrl || undefined,
       uploadedBy: userId,
     });
 
-    return NextResponse.json(newNote, { status: 201 });
+    const populatedNote = await Note.findById(newNote._id)
+      .populate('uploadedBy', 'name department profilePicture')
+      .lean();
+
+    return NextResponse.json(populatedNote, { status: 201 });
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    console.error("Note create error:", error);
+    return NextResponse.json({ error: 'The file uploaded, but saving the note failed. Please try again.' }, { status: 500 });
   }
 }

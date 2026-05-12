@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import Announcement from '@/models/Announcement';
+import User from '@/models/User';
+import { createNotifications } from '@/lib/notifications';
 import jwt from 'jsonwebtoken';
 import { getJwtAccessSecret } from '@/lib/env';
 
@@ -41,18 +43,29 @@ export async function POST(req: Request) {
       authorId,
     });
 
+    const recipients = await User.find({ _id: { $ne: authorId } }, '_id').lean();
+    await createNotifications(
+      recipients.map((user) => ({
+        userId: String(user._id),
+        type: 'announcement',
+        title: `New announcement: ${title.trim()}`,
+        body: content.trim().slice(0, 140),
+        link: '/dashboard/notifications',
+      }))
+    );
+
     return NextResponse.json(doc, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     await connectDB();
     const posts = await Announcement.find().sort({ createdAt: -1 });
     return NextResponse.json(posts);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

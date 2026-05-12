@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Helper - Midterm Presentation</title>
+  <style>
+    :root {
+      --bg: #030807;
+      --panel: rgba(6, 17, 16, 0.84);
+      --panel-strong: rgba(3, 12, 11, 0.92);
+      --border: rgba(255, 255, 255, 0.12);
+      --muted: #9fb0ad;
+      --text: #f3f8f7;
+      --accent: #7df0c8;
+      --accent-2: #8cd8ff;
+      --danger: #ff7f8f;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Aptos", system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(3,8,7,0.72), rgba(3,8,7,0.94)),
+        url("../public/campus_bg.png");
+      background-size: 52px 52px, 52px 52px, cover, cover;
+      background-position: center;
+    }
+
+    .deck {
+      height: 100%;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 48px 56px 72px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      opacity: 0;
+      transform: translateX(28px);
+      pointer-events: none;
+      transition: opacity 260ms ease, transform 260ms ease;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(125, 240, 200, 0.26);
+      background: rgba(125, 240, 200, 0.12);
+      border-radius: 999px;
+      padding: 8px 14px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      min-height: 0;
+    }
+
+    .content.single {
+      grid-template-columns: 1fr;
+    }
+
+    .hero h1, .panel h2 {
+      margin: 0;
+      font-size: clamp(38px, 5vw, 68px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .hero h1 span,
+    .panel h2 span {
+      color: var(--accent);
+    }
+
+    .hero p,
+    .panel p {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+      padding: 8px 0;
+    }
+
+    .grid,
+    .panel-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel-grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      backdrop-filter: blur(18px);
+      min-height: 0;
+    }
+
+    .panel h2 {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    .kpi {
+      background: var(--panel-strong);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .kpi strong {
+      display: block;
+      font-size: 34px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .kpi span {
+      color: var(--muted);
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    ul, ol {
+      margin: 0;
+      padding-left: 22px;
+      color: var(--text);
+      line-height: 1.75;
+      font-size: 18px;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    .mini-list {
+      padding-left: 18px;
+      font-size: 16px;
+    }
+
+    .note {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .demo-flow {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 14px;
+      padding: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+    }
+
+    .step .num {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(125, 240, 200, 0.12);
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 22px;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .controls {
+      display: inline-flex;
+      gap: 10px;
+    }
+
+    .controls button {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .controls button:hover {
+      background: rgba(125, 240, 200, 0.12);
+      border-color: rgba(125, 240, 200, 0.24);
+    }
+
+    .accent {
+      color: var(--accent);
+    }
+
+    .secondary {
+      color: var(--accent-2);
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .slide {
+        position: relative;
+        min-height: 100vh;
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+        display: none;
+      }
+
+      .slide.active {
+        display: grid;
+      }
+
+      .content,
+      .content.single,
+      .panel-grid.cols-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .slide {
+        padding: 28px 22px 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" id="deck">
+    <section class="slide active">
+      <div class="topline">
+        <div class="badge">Capstone Design Spring 2026</div>
+        <div class="counter">Slide 1 / 10</div>
+      </div>
+      <div class="content">
+        <div class="hero">
+          <h1>Campus <span>Helper</span></h1>
+          <p>A full-stack smart campus platform that brings AI assistance, schedules, notes, marketplace posts, lost-and-found, chat, and admin notices into one student dashboard.</p>
+          <div class="panel-grid cols-2">
+            <div class="kpi">
+              <strong>Student-first</strong>
+              <span>One place for campus workflows</span>
+            </div>
+            <div class="kpi">
+              <strong>Demo-ready</strong>
+              <span>Working full-stack app</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Team</h2>
+          <ul>
+            <li><strong>Laxman Bhattarai</strong> - Project Manager</li>
+            <li><strong>Kushal Kharka</strong> - Scribe / Sprint PM</li>
+            <li><strong>Bibek Kunwar</strong> - QA Lead</li>
+            <li><strong>Ujwol Upreti</strong> - Demo Driver / Sprint PM</li>
+            <li><strong>Rajim Danwar</strong> - Developer</li>
+          </ul>
+          <p class="note" style="margin-top:16px;">Repository: github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper</p>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Midterm Presentation</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Problem</div>
+        <div class="counter">Slide 2 / 10</div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h2>What problem are we solving?</h2>
+          <p>Students often need to jump between different systems for schedules, academic resources, communication, announcements, and campus help. That friction wastes time and makes campus life harder to manage.</p>
+        </div>
+        <div class="panel">
+          <h2>Why it matters</h2>
+          <ul>
+            <li>Important information is scattered.</li>
+            <li>Students lose time switching between tools.</li>
+            <li>Support and communication are inconsistent.</li>
+            <li>New students have a harder time navigating campus workflows.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Clear, centralized student workflow</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">User</div>
+        <div class="counter">Slide 3 / 10</div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h2>Primary users</h2>
+          <ul>
+            <li>Ulsan College students</li>
+            <li>New students unfamiliar with campus workflows</li>
+            <li>Student communities needing resource sharing and chat</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h2>Secondary users</h2>
+          <ul>
+            <li>Faculty or staff who need to publish notices</li>
+            <li>Admins managing users and campus announcements</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>We designed for real student tasks, not a generic portal</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Solution</div>
+        <div class="counter">Slide 4 / 10</div>
+      </div>
+      <div class="content single">
+        <div class="panel-grid cols-2">
+          <div class="panel">
+            <h2>Campus Helper does this</h2>
+            <ul>
+              <li>Authenticates students and admins</li>
+              <li>Provides a central dashboard</li>
+              <li>Offers an AI assistant with saved history</li>
+              <li>Supports schedules, notes, chat, and campus services</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h2>Core modules</h2>
+            <ul class="mini-list">
+              <li>AI Assistant</li>
+              <li>Timetable</li>
+              <li>Notes</li>
+              <li>Marketplace</li>
+              <li>Lost &amp; Found</li>
+              <li>Network and Direct Chat</li>
+              <li>Admin Notices</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>One authenticated campus command center</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Demo Flow</div>
+        <div class="counter">Slide 5 / 10</div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h2>Main demo flow</h2>
+          <div class="demo-flow">
+            <div class="step">
+              <div class="num">1</div>
+              <div>
+                <h3>User signs in</h3>
+                <p>Show the login flow and land on the dashboard.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">2</div>
+              <div>
+                <h3>User asks the AI assistant</h3>
+                <p>Show a streamed response and explain that chat history is stored.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="num">3</div>
+              <div>
+                <h3>Admin publishes a notice</h3>
+                <p>Show that admin-only actions are protected and campus notices can be managed from the admin console.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Backup plan</h2>
+          <ul>
+            <li>Recorded walkthrough video</li>
+            <li>Narrated screenshots</li>
+            <li>GitHub code walkthrough</li>
+            <li>Prepared local environment and demo accounts</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Keep the midterm demo focused and believable</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Proof</div>
+        <div class="counter">Slide 6 / 10</div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h2>What proves the project is real?</h2>
+          <ul>
+            <li>Working Next.js application</li>
+            <li>MongoDB-backed data models</li>
+            <li>JWT authentication and protected routes</li>
+            <li>OpenAI-powered AI assistant</li>
+            <li>Admin console for notices and user management</li>
+            <li>Passing TypeScript and production build checks</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h2>Evidence we can show</h2>
+          <ul>
+            <li>GitHub repository and commits</li>
+            <li>README and sprint docs</li>
+            <li>Issue log and setup docs</li>
+            <li>Live app or local demo</li>
+            <li>Build output and screenshots</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>If it is linked, demoable, and working, it is believable</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Architecture</div>
+        <div class="counter">Slide 7 / 10</div>
+      </div>
+      <div class="content single">
+        <div class="panel-grid cols-2">
+          <div class="panel">
+            <h2>Frontend</h2>
+            <ul class="mini-list">
+              <li>Next.js 16 App Router</li>
+              <li>React 19</li>
+              <li>TypeScript</li>
+              <li>Tailwind CSS 4</li>
+              <li>Framer Motion</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h2>Backend and services</h2>
+            <ul class="mini-list">
+              <li>Next.js API routes</li>
+              <li>MongoDB with Mongoose</li>
+              <li>JWT + bcrypt + jose</li>
+              <li>AI SDK v6 + OpenAI</li>
+              <li>Cloudinary uploads</li>
+              <li>Redis support for rate limiting</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Modern full-stack web app, not a static mockup</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Current Status</div>
+        <div class="counter">Slide 8 / 10</div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h2>What works now</h2>
+          <ul>
+            <li>Signup and login flow</li>
+            <li>Protected student dashboard</li>
+            <li>Streaming AI chat UI</li>
+            <li>MongoDB chat persistence</li>
+            <li>Admin notice publishing</li>
+            <li>Responsive campus-themed UI</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h2>What still needs polish</h2>
+          <ul>
+            <li>Hosted deployment and stable demo URL</li>
+            <li>Final screenshots and deck visuals</li>
+            <li>Stronger automated testing</li>
+            <li>Production environment setup</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>A focused, working demo is stronger than a bigger, unfinished scope</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Roadmap</div>
+        <div class="counter">Slide 9 / 10</div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h2>Next realistic steps before Final</h2>
+          <ol>
+            <li>Deploy the app to a stable hosting environment.</li>
+            <li>Add seed/setup instructions for demo accounts.</li>
+            <li>Improve automated testing and demo reliability.</li>
+            <li>Polish remaining module UI and notification behavior.</li>
+          </ol>
+        </div>
+        <div class="panel">
+          <h2>Current risks</h2>
+          <ul>
+            <li>External services could fail during demo.</li>
+            <li>Environment variables must be configured correctly.</li>
+            <li>OpenAI quota and API secrets must be managed safely.</li>
+            <li>The team must keep the story focused for Midterm.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Roadmap should feel realistic, not inflated</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="topline">
+        <div class="badge">Ask</div>
+        <div class="counter">Slide 10 / 10</div>
+      </div>
+      <div class="content">
+        <div class="hero">
+          <h1>Our <span>Ask</span></h1>
+          <p>We want feedback on whether the Midterm story is clear, whether the demo flow is focused enough, and whether the current roadmap is realistic for a strong Final presentation.</p>
+          <p class="secondary">We are aiming for a project that feels clear, demoable, and believable.</p>
+        </div>
+        <div class="panel">
+          <h2>Closing points</h2>
+          <ul>
+            <li>Campus Helper is already a working full-stack app.</li>
+            <li>The Midterm demo will stay focused on one strong user flow.</li>
+            <li>The Final will strengthen deployment, testing, and polish.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Thank you</span>
+        <div class="controls"><button data-dir="-1">Prev</button><button data-dir="1">Next</button></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let index = 0;
+
+    function showSlide(nextIndex) {
+      index = Math.max(0, Math.min(slides.length - 1, nextIndex));
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+    }
+
+    document.querySelectorAll('[data-dir]').forEach((button) => {
+      button.addEventListener('click', () => {
+        showSlide(index + Number(button.dataset.dir));
+      });
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') {
+        event.preventDefault();
+        showSlide(index + 1);
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        event.preventDefault();
+        showSlide(index - 1);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -7,16 +7,19 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Orbitron', 'monospace'],
-        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        // Keep names aligned with `next/font` variables in `src/app/layout.tsx`.
+        display: ['var(--font-display)', 'ui-serif', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
+        background: 'var(--color-background)',
+        foreground: 'var(--color-foreground)',
         brand: {
-          purple: '#9333EA',
-          indigo: '#4F46E5',
-          accent: '#00F5FF',
-          danger: '#FF006E',
-          warning: '#FF9F1C',
+          purple: 'var(--color-brand-purple)',
+          indigo: 'var(--color-brand-indigo)',
+          accent: 'var(--color-brand-accent)',
+          danger: 'var(--color-brand-danger)',
+          warning: 'var(--color-brand-warning)',
         },
       },
       keyframes: {

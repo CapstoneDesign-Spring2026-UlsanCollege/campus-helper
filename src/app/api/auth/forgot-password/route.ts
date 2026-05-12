@@ -23,11 +23,6 @@ export async function POST(req: Request) {
     await user.save();
 
     const resetUrl = `${getAppBaseUrl()}/reset-password?token=${resetToken}`;
-    
-    // Intercept explicitly via Backend Output for active Development Testing
-    console.log(`\n\n[SECURITY ENGINE] Password Reset Dispatch Intercepted!`);
-    console.log(`Target Address: ${user.email}`);
-    console.log(`Secure Gateway: ${resetUrl}\n\n`);
 
     // Automatic hook logic for authentic SMTP environments. Drop env vars when ready!
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -41,10 +36,13 @@ export async function POST(req: Request) {
          subject: 'Password Verification Gateway',
          text: `A reset has been designated for your account. Re-secure your parameters here: ${resetUrl}`
       });
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Never log raw reset tokens/URLs (they are secrets). In local dev without SMTP, print a redacted hint only.
+      console.info('[forgot-password] SMTP not configured; reset email not sent (development mode).');
     }
 
     return NextResponse.json({ message: 'If an account with that email exists, we sent a password reset link.' });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'System architecture errored out.' }, { status: 500 });
   }
 }

@@ -11,17 +11,17 @@ interface CardProps extends HTMLMotionProps<"div"> {
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', hover = false, children, ...props }, ref) => {
-    const baseClass = "rounded-lg backdrop-blur-2xl";
+    const baseClass = "rounded-[20px] backdrop-blur-2xl";
 
     const variants = {
-      default: "glass-panel p-6",
-      elevated: "glass-panel p-6 shadow-2xl shadow-black/50",
-      bordered: "bg-white/5 border border-white/15 p-6",
-      glow: "glass-panel p-6 border-brand-accent/30 shadow-[0_0_30px_rgba(0,245,255,0.1)]",
+      default: "command-card p-6",
+      elevated: "command-card p-6 shadow-[0_24px_60px_rgba(0,0,0,0.38)]",
+      bordered: "border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.025),rgba(255,255,255,0.01))] p-6",
+      glow: "command-card border-brand-indigo/20 p-6 shadow-[0_0_0_1px_rgba(124,233,208,0.06),0_24px_60px_rgba(124,233,208,0.08)]",
     };
 
     const hoverClass = hover
-      ? "transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-purple/10 cursor-pointer"
+      ? "cursor-pointer transition-all duration-300 hover:-translate-y-1.5 hover:border-white/14 hover:shadow-[0_28px_70px_rgba(0,0,0,0.42)]"
       : "";
 
     return (

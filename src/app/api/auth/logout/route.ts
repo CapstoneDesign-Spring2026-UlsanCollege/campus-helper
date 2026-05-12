@@ -4,7 +4,7 @@ import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get('refreshToken')?.value;
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ message: 'Logged out successfully' });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

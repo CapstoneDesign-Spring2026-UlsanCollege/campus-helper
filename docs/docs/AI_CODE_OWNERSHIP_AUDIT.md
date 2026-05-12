@@ -5,7 +5,7 @@
 - **Team:** LKRB
 - **Project name:** Campus Helper
 - **Current repo:** https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper
-- **Current demo link:** https://ulsan-campus-plus-6mvfqdh9d-ulsanassignment-7071s-projects.vercel.app/
+- **Current demo link:** [https://ulsan-campus-plus-6mvfqdh9d-ulsanassignment-7071s-projects.vercel.app/](https://ulsan-campus-plus.vercel.app)
 - **Date updated:** 2026-04-29
 
 ---

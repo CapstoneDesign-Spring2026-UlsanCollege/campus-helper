@@ -6,7 +6,7 @@
 **Packet**: Week 7 Packet  
 **Sprint Context**: Sprint 2 is the multi-week sprint leading to the Midterm  
 **Repository**: https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper  
-**PM for this Week**: Laxman Bhattarai
+**PM for this Week**: Kunwar Bibek
 
 > GitHub Issue title to use: **Weekly Sprint Packet — Week 7**
 

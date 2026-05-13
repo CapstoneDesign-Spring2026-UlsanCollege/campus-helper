@@ -1,0 +1,44 @@
+Bug List — Week 11
+Priority Scale
+P0 — Demo cannot work
+P1 — Core feature broken
+P2 — Workaround exists
+P3 — Polish / nice improvement
+All Bugs
+ID	Priority	Title	Status	Owner
+BUG-001	P0	Any password accepted without restrictions	Open	Ujwal
+BUG-002	P1	No password strength indicator during signup	Open	Rajim
+BUG-003	P1	Signup form accepts weak passwords	Open	Rajim
+BUG-004	P1	Uploaded images do not appear in Lost & Found	Open	Bibek
+BUG-005	P2	Chat messages are delayed in chatbox	Open	Kushal
+BUG-006	P2	Notifications are not updated in real-time	Open	Ujwal
+BUG-007	P1	Search results for notes/resources are inaccurate	Open	Bibek
+BUG-008	P2	User profile picture not updating immediately	Open	Laxman
+BUG-009	P2	Timestamp in chat does not refresh automatically	Open	Ujwal
+BUG-010	P1	No validation for empty Lost & Found posts	Open	Rajim
+BUG-011	P2	File upload size not restricted	Open	Kushal
+BUG-012	P2	Error messages are unclear for failed uploads	Open	Bibek
+BUG-013	P1	Backend API lacks proper error handling	Open	Kushal
+BUG-014	P1	No unit tests for backend services	Open	Laxman
+BUG-015	P1	CI workflow does not execute tests automatically	Open	Ujwal
+P0 Bugs (Critical — Demo Cannot Work)
+ID	Description	Impact
+BUG-001	Any password can be set without restrictions	Serious security issue, unsafe authentication
+P1 Bugs (Core Feature Broken)
+ID	Description	Impact
+BUG-002	No password strength interface	Users cannot identify secure passwords
+BUG-003	Weak passwords accepted during signup	Security vulnerability
+BUG-004	Uploaded images do not display in Lost & Found	Users cannot verify uploaded items
+BUG-007	Search results are inaccurate	Difficult to find notes/resources
+BUG-010	Empty Lost & Found posts can be submitted	Invalid data stored in system
+BUG-013	No proper API error handling	Application crashes without clear feedback
+BUG-014	Backend has no unit tests	Reliability cannot be verified
+BUG-015	CI workflow does not run tests	Bugs/regressions may go unnoticed
+P2 Bugs (Workaround Exists)
+ID	Description	Workaround
+BUG-005	Chat messages are delayed	Refresh or wait for sync
+BUG-006	Notifications not updating in real-time	Reload application manually
+BUG-008	Profile picture update delayed	Logout and login again
+BUG-009	Chat timestamp remains outdated	Refresh page to see correct time
+BUG-011	No file upload size restriction	Users manually reduce image size
+BUG-012	Upload failure messages unclear	Check browser console/server logs

@@ -1,0 +1,61 @@
+Campus Helper
+
+Sprint 3
+
+Repository
+https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper
+
+
+PM for this Sprint
+Kushal Kharka
+
+Demo Script
+What will you show during the demo?
+
+Step 1: Open the application homepage and navigate to the signup page.
+Step 2: Demonstrate the password requirement validation while creating a new account.
+Step 3: Show how the system responds to weak and strong passwords in real time.
+Step 4: Open the admin dashboard and demonstrate the implemented dashboard features and navigation.
+
+
+Sprint Goal
+
+The goal of this sprint was to improve user authentication experience by displaying password requirements during signup and continue development of the admin dashboard.
+
+Current Board State
+To Do
+Able to upload pdf files too
+Doing
+Improving and making responsive notification in the user profile after the admin uploads any notice
+Done
+Password requirement feature
+Admin dashboard
+Sprint Notes
+What Shipped
+Admin dashboard UI improvements completed
+Password requirement validation added during signup
+Real-time password feedback successfully implemented
+What Broke
+Styling inconsistencies in dashboard components
+Validation messages were not updating correctly at first
+Minor responsive layout issues on smaller screens
+
+Next Sprint Plan
+Fuix PDF upload feature in the Lost and Found section
+Fix PDF upload feature in the Marketplace section
+Fix the issue where notices uploaded by the admin are not showing in the user profile
+Improve dashboard responsiveness and accessibility
+
+Risks or Blockers
+Backend API integration delays
+Possible merge conflicts due to parallel feature development
+Limited testing time before deployment
+Engineering Practice (if required this week)
+Engineering Practice Used
+
+
+Definition of Done (Quick Check)
+Demo works or has backup
+Project board is updated
+Sprint notes are written
+Each member posted receipts

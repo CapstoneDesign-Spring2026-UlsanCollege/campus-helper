@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Helper - Interactive Workflow Flowcharts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --border: #e5e7eb;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: slideDown 0.6s ease-out;
+        }
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .flowchart-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+            animation: slideUp 0.6s ease-out 0.2s both;
+        }
+        .flowchart-btn {
+            padding: 12px 24px;
+            border: 2px solid white;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .flowchart-btn:hover {
+            background: white;
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .flowchart-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .flowchart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: none;
+            animation: fadeInUp 0.6s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .flowchart-container.active {
+            display: block;
+        }
+        .flowchart-title {
+            font-size: 2em;
+            color: var(--primary);
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            padding-bottom: 20px;
+        }
+        .flowchart-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+        }
+        .flowchart-svg {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            display: block;
+        }
+        /* Node Styles */
+        .node-start, .node-end {
+            fill: var(--success);
+        }
+        .node-process {
+            fill: var(--info);
+        }
+        .node-decision {
+            fill: var(--warning);
+        }
+        .node-error {
+            fill: var(--error);
+        }
+        .node-data {
+            fill: var(--secondary);
+        }
+        .node-text {
+            fill: white;
+            font-size: 13px;
+            font-weight: 600;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        .node-rect {
+            stroke: white;
+            stroke-width: 2;
+        }
+        .arrow {
+            stroke: var(--dark);
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+        .arrow-error {
+            stroke: var(--error);
+            stroke-dasharray: 5,5;
+        }
+        .arrow-success {
+            stroke: var(--success);
+        }
+        .description {
+            background: var(--light);
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: var(--dark);
+        }
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid var(--border);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 2px solid white;
+        }
+        .legend-text {
+            font-weight: 600;
+            color: var(--dark);
+        }
+        /* Animations */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            .flowchart-container {
+                padding: 20px;
+            }
+            .flowchart-btn {
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+            .flowchart-selector {
+                gap: 8px;
+            }
+        }
+        /* Scrollbar styling */
+        .flowchart-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .flowchart-container::-webkit-scrollbar-track {
+            background: var(--light);
+        }
+        .flowchart-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        .flowchart-container::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+        .tabs-info {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 4px solid var(--primary);
+        }
+        .tabs-info h3 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        .tabs-info p {
+            color: var(--dark);
+            line-height: 1.6;
+            margin: 5px 0;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        .stat-card p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Campus Helper</h1>
+            <p>Interactive Workflow Flowcharts</p>
+        </header>
+        <div class="flowchart-selector">
+            <button class="flowchart-btn active" onclick="showFlowchart('signup')">📝 Signup</button>
+            <button class="flowchart-btn" onclick="showFlowchart('login')">🔐 Login</button>
+            <button class="flowchart-btn" onclick="showFlowchart('ai-chat')">🤖 AI Chat</button>
+            <button class="flowchart-btn" onclick="showFlowchart('notes')">📚 Notes</button>
+            <button class="flowchart-btn" onclick="showFlowchart('chat')">💬 Chat</button>
+            <button class="flowchart-btn" onclick="showFlowchart('marketplace')">🛍️ Marketplace</button>
+            <button class="flowchart-btn" onclick="showFlowchart('admin')">⚙️ Admin</button>
+        </div>
+        <!-- SIGNUP FLOW -->
+        <div class="flowchart-container active" id="signup">
+            <h2 class="flowchart-title">User Registration Flow</h2>
+            <svg class="flowchart-svg" viewBox="0 0 800 1200">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#1f2937" />
+                    </marker>
+                </defs>
+                
+                <!-- START -->
+                <ellipse cx="400" cy="50" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="400" y="50" class="node-text">START</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="80" x2="400" y2="120" class="arrow"/>
+                
+                <!-- Navigate to signup -->
+                <rect x="300" y="120" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="400" y="145" class="node-text">User Navigates</text>
+                <text x="400" y="160" class="node-text">to /signup</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="180" x2="400" y2="220" class="arrow"/>
+                
+                <!-- Render Form -->
+                <rect x="300" y="220" width="200" height="80" rx="8" class="node-process node-rect"/>
+                <text x="400" y="240" class="node-text">Render Signup Form</text>
+                <text x="400" y="258" class="node-text">• Email input</text>
+                <text x="400" y="276" class="node-text">• Password • Confirm</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="300" x2="400" y2="340" class="arrow"/>
+                
+                <!-- Fill & Submit -->
+                <rect x="300" y="340" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="400" y="365" class="node-text">User Fills Form</text>
+                <text x="400" y="380" class="node-text">& Submits</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="400" x2="400" y2="440" class="arrow"/>
+                
+                <!-- Validation -->
+                <polygon points="400,440 470,490 400,540 330,490" class="node-decision node-rect"/>
+                <text x="400" y="485" class="node-text">Validation</text>
+                <text x="400" y="502" class="node-text">Valid?</text>
+                
+                <!-- Error path -->
+                <line x1="330" y1="490" x2="150" y2="490" class="arrow arrow-error"/>
+                <text x="240" y="480" style="fill: var(--error); font-weight: bold;">✗ NO</text>
+                
+                <rect x="50" y="460" width="200" height="60" rx="8" class="node-error node-rect"/>
+                <text x="150" y="485" class="node-text">Show Error</text>
+                <text x="150" y="502" class="node-text">Toast Message</text>
+                
+                <!-- Success path -->
+                <line x1="470" y1="490" x2="650" y2="490" class="arrow arrow-success"/>
+                <text x="560" y="480" style="fill: var(--success); font-weight: bold;">✓ YES</text>
+                
+                <!-- POST request -->
+                <rect x="550" y="460" width="200" height="60" rx="8" class="node-data node-rect"/>
+                <text x="650" y="480" class="node-text">POST /api/auth/</text>
+                <text x="650" y="497" class="node-text">signup</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="540" x2="400" y2="580" class="arrow"/>
+                
+                <!-- Backend Processing -->
+                <rect x="250" y="580" width="300" height="100" rx="8" class="node-process node-rect"/>
+                <text x="400" y="600" class="node-text">Backend: Signup Handler</text>
+                <text x="400" y="620" class="node-text">1. Validate input schema</text>
+                <text x="400" y="638" class="node-text">2. Check if user exists</text>
+                <text x="400" y="656" class="node-text">3. Hash password with bcrypt</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="680" x2="400" y2="720" class="arrow"/>
+                
+                <!-- Decision: User Exists? -->
+                <polygon points="400,720 470,770 400,820 330,770" class="node-decision node-rect"/>
+                <text x="400" y="770" class="node-text">User</text>
+                <text x="400" y="787" class="node-text">Exists?</text>
+                
+                <!-- YES - User exists -->
+                <line x1="330" y1="770" x2="150" y2="770" class="arrow arrow-error"/>
+                <text x="240" y="760" style="fill: var(--error); font-weight: bold;">YES</text>
+                
+                <rect x="50" y="740" width="200" height="60" rx="8" class="node-error node-rect"/>
+                <text x="150" y="760" class="node-text">Return 409</text>
+                <text x="150" y="777" class="node-text">Email exists</text>
+                
+                <!-- NO - Create user -->
+                <line x1="470" y1="770" x2="650" y2="770" class="arrow arrow-success"/>
+                <text x="560" y="760" style="fill: var(--success); font-weight: bold;">NO</text>
+                
+                <rect x="550" y="740" width="200" height="80" rx="8" class="node-process node-rect"/>
+                <text x="650" y="760" class="node-text">Create User</text>
+                <text x="650" y="778" class="node-text">in MongoDB</text>
+                <text x="650" y="796" class="node-text">Generate JWT tokens</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="820" x2="400" y2="860" class="arrow"/>
+                
+                <!-- Generate Tokens -->
+                <rect x="250" y="860" width="300" height="80" rx="8" class="node-data node-rect"/>
+                <text x="400" y="880" class="node-text">Generate JWT Tokens</text>
+                <text x="400" y="898" class="node-text">• Access (15 min)</text>
+                <text x="400" y="916" class="node-text">• Refresh (7 days)</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="940" x2="400" y2="980" class="arrow"/>
+                
+                <!-- Set Cookies -->
+                <rect x="250" y="980" width="300" height="60" rx="8" class="node-process node-rect"/>
+                <text x="400" y="1003" class="node-text">Set HTTP-only Cookies</text>
+                <text x="400" y="1020" class="node-text">& Return 201 Created</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="1040" x2="400" y2="1080" class="arrow"/>
+                
+                <!-- SUCCESS -->
+                <ellipse cx="400" cy="1110" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="400" y="1110" class="node-text">SUCCESS</text>
+            </svg>
+            <div class="description">
+                <h3>📋 Signup Flow Overview</h3>
+                <p><strong>User Registration Process:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>User enters email, password, and name</li>
+                    <li>Frontend validates input (format, strength, matching)</li>
+                    <li>POST request sent to <code>/api/auth/signup</code></li>
+                    <li>Backend checks if email already exists</li>
+                    <li>Password hashed with bcrypt (10 salt rounds)</li>
+                    <li>User document created in MongoDB</li>
+                    <li>JWT tokens generated (access + refresh)</li>
+                    <li>Tokens stored in HTTP-only cookies</li>
+                    <li>User redirected to /dashboard</li>
+                </ul>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div>
+                    <span class="legend-text">Start/End/Success</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--info);"></div>
+                    <span class="legend-text">Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--warning);"></div>
+                    <span class="legend-text">Decision</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--secondary);"></div>
+                    <span class="legend-text">Data/API</span>
+                </div>
+            </div>
+        </div>
+        <!-- LOGIN FLOW -->
+        <div class="flowchart-container" id="login">
+            <h2 class="flowchart-title">User Login & Token Refresh Flow</h2>
+            <svg class="flowchart-svg" viewBox="0 0 800 1000">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#1f2937" />
+                    </marker>
+                </defs>
+                
+                <!-- START -->
+                <ellipse cx="400" cy="50" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="400" y="50" class="node-text">START</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="80" x2="400" y2="120" class="arrow"/>
+                
+                <!-- Navigate to login -->
+                <rect x="300" y="120" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="400" y="150" class="node-text">User Navigates</text>
+                <text x="400" y="165" class="node-text">to /login</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="180" x2="400" y2="220" class="arrow"/>
+                
+                <!-- Enter Credentials -->
+                <rect x="300" y="220" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="400" y="245" class="node-text">User Enters</text>
+                <text x="400" y="260" class="node-text">Email & Password</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="280" x2="400" y2="320" class="arrow"/>
+                
+                <!-- Rate Limiting Check -->
+                <polygon points="400,320 470,370 400,420 330,370" class="node-decision node-rect"/>
+                <text x="400" y="365" class="node-text">Rate Limit</text>
+                <text x="400" y="382" class="node-text">OK?</text>
+                
+                <!-- Exceeded -->
+                <line x1="330" y1="370" x2="150" y2="370" class="arrow arrow-error"/>
+                <rect x="50" y="340" width="200" height="60" rx="8" class="node-error node-rect"/>
+                <text x="150" y="365" class="node-text">429: Too Many</text>
+                <text x="150" y="382" class="node-text">Requests</text>
+                
+                <!-- OK -->
+                <line x1="470" y1="370" x2="650" y2="370" class="arrow arrow-success"/>
+                
+                <!-- Query User -->
+                <rect x="550" y="340" width="200" height="60" rx="8" class="node-data node-rect"/>
+                <text x="650" y="365" class="node-text">Query User</text>
+                <text x="650" y="382" class="node-text">by Email</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="420" x2="400" y2="460" class="arrow"/>
+                
+                <!-- User Found? -->
+                <polygon points="400,460 470,510 400,560 330,510" class="node-decision node-rect"/>
+                <text x="400" y="510" class="node-text">User</text>
+                <text x="400" y="527" class="node-text">Found?</text>
+                
+                <!-- Not found -->
+                <line x1="330" y1="510" x2="150" y2="510" class="arrow arrow-error"/>
+                <rect x="50" y="480" width="200" height="60" rx="8" class="node-error node-rect"/>
+                <text x="150" y="505" class="node-text">401: Invalid</text>
+                <text x="150" y="522" class="node-text">Credentials</text>
+                
+                <!-- Found -->
+                <line x1="470" y1="510" x2="650" y2="510" class="arrow arrow-success"/>
+                
+                <!-- Compare Password -->
+                <rect x="550" y="480" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="650" y="503" class="node-text">bcrypt.compare()</text>
+                <text x="650" y="520" class="node-text">Password Match?</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="560" x2="400" y2="600" class="arrow"/>
+                
+                <!-- Generate Tokens -->
+                <rect x="250" y="600" width="300" height="80" rx="8" class="node-data node-rect"/>
+                <text x="400" y="620" class="node-text">Generate JWT Tokens</text>
+                <text x="400" y="638" class="node-text">Access Token (15 min)</text>
+                <text x="400" y="656" class="node-text">Refresh Token (7 days)</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="680" x2="400" y2="720" class="arrow"/>
+                
+                <!-- Set Cookies -->
+                <rect x="250" y="720" width="300" height="60" rx="8" class="node-process node-rect"/>
+                <text x="400" y="745" class="node-text">Set HTTP-only Cookies</text>
+                <text x="400" y="762" class="node-text">& Return 200 OK</text>
+                
+                <!-- Arrow -->
+                <line x1="400" y1="780" x2="400" y2="820" class="arrow"/>
+                
+                <!-- SUCCESS -->
+                <ellipse cx="400" cy="850" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="400" y="850" class="node-text">SUCCESS</text>
+            </svg>
+            <div class="description">
+                <h3>🔐 Login Flow Overview</h3>
+                <p><strong>Key Features:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Rate limiting: Max 5 failed attempts per 15 minutes (Redis-backed)</li>
+                    <li>User lookup by email from MongoDB</li>
+                    <li>Password verification using bcrypt.compare()</li>
+                    <li>JWT tokens with different expiration times</li>
+                    <li>HTTP-only cookies prevent XSS attacks</li>
+                    <li>Access token: 15 minutes (short-lived)</li>
+                    <li>Refresh token: 7 days (long-lived)</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>Token Refresh:</strong> When access token expires, the client uses the refresh token to get a new access token without re-entering credentials.</p>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div>
+                    <span class="legend-text">Start/End/Success</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--info);"></div>
+                    <span class="legend-text">Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--warning);"></div>
+                    <span class="legend-text">Decision</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--error);"></div>
+                    <span class="legend-text">Error</span>
+                </div>
+            </div>
+        </div>
+        <!-- AI CHAT FLOW -->
+        <div class="flowchart-container" id="ai-chat">
+            <h2 class="flowchart-title">AI Assistant Chat Flow</h2>
+            <svg class="flowchart-svg" viewBox="0 0 900 1300">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#1f2937" />
+                    </marker>
+                </defs>
+                
+                <!-- START -->
+                <ellipse cx="450" cy="50" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="450" y="50" class="node-text">START</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="80" x2="450" y2="120" class="arrow"/>
+                
+                <!-- Navigate -->
+                <rect x="350" y="120" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="450" y="150" class="node-text">User Navigates to</text>
+                <text x="450" y="165" class="node-text">/dashboard/ai</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="180" x2="450" y2="220" class="arrow"/>
+                
+                <!-- Load Chat History -->
+                <rect x="300" y="220" width="300" height="80" rx="8" class="node-data node-rect"/>
+                <text x="450" y="240" class="node-text">GET /api/ai/chat</text>
+                <text x="450" y="258" class="node-text">Load ChatHistory from</text>
+                <text x="450" y="276" class="node-text">MongoDB</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="300" x2="450" y2="340" class="arrow"/>
+                
+                <!-- Render Chat -->
+                <rect x="300" y="340" width="300" height="100" rx="8" class="node-process node-rect"/>
+                <text x="450" y="360" class="node-text">Render Chat Interface</text>
+                <text x="450" y="378" class="node-text">• Message list</text>
+                <text x="450" y="396" class="node-text">• Input box</text>
+                <text x="450" y="414" class="node-text">• File upload option</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="440" x2="450" y2="480" class="arrow"/>
+                
+                <!-- User Input -->
+                <rect x="300" y="480" width="300" height="60" rx="8" class="node-process node-rect"/>
+                <text x="450" y="505" class="node-text">User Types Message</text>
+                <text x="450" y="520" class="node-text">+ Optional File</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="540" x2="450" y2="580" class="arrow"/>
+                
+                <!-- Validation -->
+                <polygon points="450,580 520,630 450,680 380,630" class="node-decision node-rect"/>
+                <text x="450" y="625" class="node-text">Valid?</text>
+                
+                <!-- Invalid -->
+                <line x1="380" y1="630" x2="200" y2="630" class="arrow arrow-error"/>
+                <rect x="100" y="600" width="200" height="60" rx="8" class="node-error node-rect"/>
+                <text x="200" y="625" class="node-text">Show Error</text>
+                <text x="200" y="640" class="node-text">Message</text>
+                
+                <!-- Valid -->
+                <line x1="520" y1="630" x2="700" y2="630" class="arrow arrow-success"/>
+                
+                <!-- Upload File -->
+                <rect x="600" y="600" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="700" y="615" class="node-text">POST /api/upload</text>
+                <text x="700" y="632" class="node-text">(if file selected)</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="680" x2="450" y2="720" class="arrow"/>
+                
+                <!-- Send to AI -->
+                <rect x="300" y="720" width="300" height="80" rx="8" class="node-data node-rect"/>
+                <text x="450" y="740" class="node-text">POST /api/ai/chat</text>
+                <text x="450" y="758" class="node-text">{message, fileUrl}</text>
+                <text x="450" y="776" class="node-text">Backend calls OpenAI/Gemini</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="800" x2="450" y2="840" class="arrow"/>
+                
+                <!-- Streaming -->
+                <rect x="250" y="840" width="400" height="100" rx="8" class="node-process node-rect"/>
+                <text x="450" y="860" class="node-text">Streaming Response</text>
+                <text x="450" y="878" class="node-text">Content-Type: text/event-stream</text>
+                <text x="450" y="896" class="node-text">Frontend receives tokens</text>
+                <text x="450" y="914" class="node-text">in real-time</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="940" x2="450" y2="980" class="arrow"/>
+                
+                <!-- Display Response -->
+                <rect x="250" y="980" width="400" height="100" rx="8" class="node-process node-rect"/>
+                <text x="450" y="1000" class="node-text">Display in Chat UI</text>
+                <text x="450" y="1018" class="node-text">Accumulate streaming tokens</text>
+                <text x="450" y="1036" class="node-text">Update UI progressively</text>
+                <text x="450" y="1054" class="node-text">Show typing indicator</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="1080" x2="450" y2="1120" class="arrow"/>
+                
+                <!-- Save to History -->
+                <rect x="250" y="1120" width="400" height="80" rx="8" class="node-data node-rect"/>
+                <text x="450" y="1140" class="node-text">Save to ChatHistory</text>
+                <text x="450" y="1158" class="node-text">MongoDB: user message +</text>
+                <text x="450" y="1176" class="node-text">AI response</text>
+                
+                <!-- Arrow -->
+                <line x1="450" y1="1200" x2="450" y2="1240" class="arrow"/>
+                
+                <!-- SUCCESS -->
+                <ellipse cx="450" cy="1270" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="450" y="1270" class="node-text">SUCCESS</text>
+            </svg>
+            <div class="description">
+                <h3>🤖 AI Chat Flow Overview</h3>
+                <p><strong>Real-time AI Assistance:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Load previous conversation history from MongoDB ChatHistory</li>
+                    <li>User can optionally attach files (PDFs, images, documents)</li>
+                    <li>File upload to Cloudinary via proxy route</li>
+                    <li>POST to /api/ai/chat with message and optional fileUrl</li>
+                    <li>Backend sends request to OpenAI API (gpt-4) or Google Gemini</li>
+                    <li>Uses streaming for real-time token delivery</li>
+                    <li>Frontend accumulates tokens and updates UI progressively</li>
+                    <li>Full response saved to ChatHistory in MongoDB</li>
+                    <li>Conversation persists across sessions</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>Providers:</strong> OpenAI (primary) with fallback to Google Gemini</p>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div>
+                    <span class="legend-text">Start/End</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--info);"></div>
+                    <span class="legend-text">Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--secondary);"></div>
+                    <span class="legend-text">Data/API</span>
+                </div>
+            </div>
+        </div>
+        <!-- NOTES FLOW -->
+        <div class="flowchart-container" id="notes">
+            <h2 class="flowchart-title">Notes Upload & Browsing Flow</h2>
+            <svg class="flowchart-svg" viewBox="0 0 1000 1100">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#1f2937" />
+                    </marker>
+                </defs>
+                
+                <!-- BROWSE PATH -->
+                <text x="200" y="30" style="font-size: 16px; font-weight: bold; fill: var(--primary);">BROWSING NOTES</text>
+                
+                <!-- START Browse -->
+                <ellipse cx="150" cy="80" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="150" y="80" class="node-text">START</text>
+                
+                <line x1="150" y1="110" x2="150" y2="150" class="arrow"/>
+                
+                <!-- Get Notes -->
+                <rect x="50" y="150" width="200" height="60" rx="8" class="node-data node-rect"/>
+                <text x="150" y="175" class="node-text">GET /api/notes</text>
+                <text x="150" y="190" class="node-text">(fetch all notes)</text>
+                
+                <line x1="150" y1="210" x2="150" y2="250" class="arrow"/>
+                
+                <!-- Display Gallery -->
+                <rect x="50" y="250" width="200" height="80" rx="8" class="node-process node-rect"/>
+                <text x="150" y="270" class="node-text">Render Gallery</text>
+                <text x="150" y="288" class="node-text">• Cards • Title</text>
+                <text x="150" y="306" class="node-text">• Author • Like count</text>
+                
+                <line x1="150" y1="330" x2="150" y2="370" class="arrow"/>
+                
+                <!-- Click action -->
+                <polygon points="150,370 220,420 150,470 80,420" class="node-decision node-rect"/>
+                <text x="150" y="415" class="node-text">User</text>
+                <text x="150" y="432" class="node-text">Action?</text>
+                
+                <!-- View -->
+                <line x1="80" y1="420" x2="20" y2="420" class="arrow"/>
+                <text x="50" y="410" style="fill: var(--dark); font-size: 12px;">View</text>
+                
+                <rect x="-80" y="390" width="160" height="60" rx="8" class="node-data node-rect"/>
+                <text x="-20" y="410" class="node-text">GET /api/</text>
+                <text x="-20" y="427" class="node-text">notes/[id]/view</text>
+                
+                <!-- Like -->
+                <line x1="220" y1="420" x2="380" y2="420" class="arrow"/>
+                <text x="290" y="410" style="fill: var(--dark); font-size: 12px;">Like</text>
+                
+                <rect x="320" y="390" width="160" height="60" rx="8" class="node-data node-rect"/>
+                <text x="400" y="410" class="node-text">POST /api/</text>
+                <text x="400" y="427" class="node-text">notes/[id]/like</text>
+                
+                <!-- Download -->
+                <line x1="150" y1="470" x2="150" y2="510" class="arrow"/>
+                <text x="160" y="492" style="fill: var(--dark); font-size: 12px;">Download</text>
+                
+                <rect x="50" y="510" width="200" height="60" rx="8" class="node-data node-rect"/>
+                <text x="150" y="530" class="node-text">GET /api/notes/</text>
+                <text x="150" y="547" class="node-text">[id]/download</text>
+                
+                <!-- SUCCESS Browse -->
+                <line x1="150" y1="570" x2="150" y2="610" class="arrow"/>
+                <ellipse cx="150" cy="640" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="150" y="640" class="node-text">SUCCESS</text>
+                
+                <!-- UPLOAD PATH -->
+                <text x="700" y="30" style="font-size: 16px; font-weight: bold; fill: var(--primary);">UPLOADING NOTES</text>
+                
+                <!-- START Upload -->
+                <ellipse cx="750" cy="80" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="750" y="80" class="node-text">START</text>
+                
+                <line x1="750" y1="110" x2="750" y2="150" class="arrow"/>
+                
+                <!-- Click Upload -->
+                <rect x="650" y="150" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="750" y="175" class="node-text">User Clicks</text>
+                <text x="750" y="190" class="node-text">"Upload Note"</text>
+                
+                <line x1="750" y1="210" x2="750" y2="250" class="arrow"/>
+                
+                <!-- Show Form -->
+                <rect x="650" y="250" width="200" height="100" rx="8" class="node-process node-rect"/>
+                <text x="750" y="270" class="node-text">Show Upload Modal</text>
+                <text x="750" y="288" class="node-text">• Title input</text>
+                <text x="750" y="306" class="node-text">• Description</text>
+                <text x="750" y="324" class="node-text">• File picker</text>
+                
+                <line x1="750" y1="350" x2="750" y2="390" class="arrow"/>
+                
+                <!-- Fill Form -->
+                <rect x="650" y="390" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="750" y="415" class="node-text">User Fills Form</text>
+                <text x="750" y="430" class="node-text">& Selects File</text>
+                
+                <line x1="750" y1="450" x2="750" y2="490" class="arrow"/>
+                
+                <!-- Validation -->
+                <polygon points="750,490 820,540 750,590 680,540" class="node-decision node-rect"/>
+                <text x="750" y="535" class="node-text">Valid?</text>
+                
+                <!-- Invalid -->
+                <line x1="680" y1="540" x2="550" y2="540" class="arrow arrow-error"/>
+                <rect x="450" y="510" width="200" height="60" rx="8" class="node-error node-rect"/>
+                <text x="550" y="535" class="node-text">Show Error</text>
+                <text x="550" y="550" class="node-text">Message</text>
+                
+                <!-- Valid -->
+                <line x1="820" y1="540" x2="880" y2="540" class="arrow arrow-success"/>
+                
+                <!-- Upload File -->
+                <rect x="800" y="510" width="180" height="60" rx="8" class="node-data node-rect"/>
+                <text x="890" y="530" class="node-text">POST /api/</text>
+                <text x="890" y="547" class="node-text">upload</text>
+                
+                <line x1="750" y1="590" x2="750" y2="630" class="arrow"/>
+                
+                <!-- Create Note -->
+                <rect x="650" y="630" width="200" height="80" rx="8" class="node-data node-rect"/>
+                <text x="750" y="650" class="node-text">POST /api/notes</text>
+                <text x="750" y="668" class="node-text">Create MongoDB</text>
+                <text x="750" y="686" class="node-text">Note document</text>
+                
+                <line x1="750" y1="710" x2="750" y2="750" class="arrow"/>
+                
+                <!-- SUCCESS Upload -->
+                <ellipse cx="750" cy="780" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="750" y="780" class="node-text">SUCCESS</text>
+            </svg>
+            <div class="description">
+                <h3>📚 Notes Workflow Overview</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                    <div>
+                        <p style="font-weight: bold; margin-bottom: 10px;">📖 Browsing Notes</p>
+                        <ul style="margin-left: 20px;">
+                            <li>GET /api/notes retrieves all notes</li>
+                            <li>Display as gallery cards</li>
+                            <li>Click to view details</li>
+                            <li>Like/Unlike functionality</li>
+                            <li>Download file to device</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p style="font-weight: bold; margin-bottom: 10px;">📤 Uploading Notes</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Form validation (title, file)</li>
+                            <li>Upload file to Cloudinary</li>
+                            <li>Get secure file URL</li>
+                            <li>Create Note in MongoDB</li>
+                            <li>Appears in gallery immediately</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div>
+                    <span class="legend-text">Start/End</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--info);"></div>
+                    <span class="legend-text">Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--secondary);"></div>
+                    <span class="legend-text">Data/API</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--error);"></div>
+                    <span class="legend-text">Error</span>
+                </div>
+            </div>
+        </div>
+        <!-- CHAT FLOW -->
+        <div class="flowchart-container" id="chat">
+            <h2 class="flowchart-title">Direct Messaging Chat Flow</h2>
+            <svg class="flowchart-svg" viewBox="0 0 900 1100">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#1f2937" />
+                    </marker>
+                </defs>
+                
+                <!-- START -->
+                <ellipse cx="450" cy="50" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="450" y="50" class="node-text">START</text>
+                
+                <line x1="450" y1="80" x2="450" y2="120" class="arrow"/>
+                
+                <!-- Navigate to Chat -->
+                <rect x="350" y="120" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="450" y="150" class="node-text">User Navigates to</text>
+                <text x="450" y="165" class="node-text">/dashboard/chat</text>
+                
+                <line x1="450" y1="180" x2="450" y2="220" class="arrow"/>
+                
+                <!-- Get Contacts -->
+                <rect x="300" y="220" width="300" height="80" rx="8" class="node-data node-rect"/>
+                <text x="450" y="240" class="node-text">GET /api/chat/contacts</text>
+                <text x="450" y="258" class="node-text">Fetch friends list</text>
+                <text x="450" y="276" class="node-text">with unread count</text>
+                
+                <line x1="450" y1="300" x2="450" y2="340" class="arrow"/>
+                
+                <!-- Display Contacts -->
+                <rect x="300" y="340" width="300" height="100" rx="8" class="node-process node-rect"/>
+                <text x="450" y="360" class="node-text">Render Contacts List</text>
+                <text x="450" y="378" class="node-text">• Show friends</text>
+                <text x="450" y="396" class="node-text">• Unread badges</text>
+                <text x="450" y="414" class="node-text">• Online status</text>
+                
+                <line x1="450" y1="440" x2="450" y2="480" class="arrow"/>
+                
+                <!-- Click Contact -->
+                <rect x="300" y="480" width="300" height="60" rx="8" class="node-process node-rect"/>
+                <text x="450" y="505" class="node-text">User Clicks Contact</text>
+                <text x="450" y="520" class="node-text">to Open Chat</text>
+                
+                <line x1="450" y1="540" x2="450" y2="580" class="arrow"/>
+                
+                <!-- Get Message History -->
+                <rect x="250" y="580" width="400" height="80" rx="8" class="node-data node-rect"/>
+                <text x="450" y="600" class="node-text">GET /api/chat?contactId=[id]</text>
+                <text x="450" y="618" class="node-text">Fetch message history</text>
+                <text x="450" y="636" class="node-text">(last 50 messages)</text>
+                
+                <line x1="450" y1="660" x2="450" y2="700" class="arrow"/>
+                
+                <!-- Display Thread -->
+                <rect x="250" y="700" width="400" height="100" rx="8" class="node-process node-rect"/>
+                <text x="450" y="720" class="node-text">Render Chat Thread</text>
+                <text x="450" y="738" class="node-text">• Show messages</text>
+                <text x="450" y="756" class="node-text">• Mark as read</text>
+                <text x="450" y="774" class="node-text">• Enable input</text>
+                
+                <line x1="450" y1="800" x2="450" y2="840" class="arrow"/>
+                
+                <!-- User Types -->
+                <rect x="300" y="840" width="300" height="60" rx="8" class="node-process node-rect"/>
+                <text x="450" y="865" class="node-text">User Types Message</text>
+                <text x="450" y="880" class="node-text">in Input Box</text>
+                
+                <line x1="450" y1="900" x2="450" y2="940" class="arrow"/>
+                
+                <!-- Validation -->
+                <polygon points="450,940 520,990 450,1040 380,990" class="node-decision node-rect"/>
+                <text x="450" y="985" class="node-text">Not Empty?</text>
+                
+                <!-- Empty -->
+                <line x1="380" y1="990" x2="250" y2="990" class="arrow arrow-error"/>
+                <rect x="100" y="960" width="150" height="60" rx="8" class="node-error node-rect"/>
+                <text x="175" y="985" class="node-text">Don't Send</text>
+                
+                <!-- Has Content -->
+                <line x1="520" y1="990" x2="650" y2="990" class="arrow arrow-success"/>
+                
+                <!-- Send Message -->
+                <rect x="550" y="960" width="150" height="60" rx="8" class="node-data node-rect"/>
+                <text x="625" y="980" class="node-text">POST /api/</text>
+                <text x="625" y="997" class="node-text">chat</text>
+                
+                <line x1="450" y1="1040" x2="450" y2="1080" class="arrow"/>
+                
+                <!-- SUCCESS -->
+                <ellipse cx="450" cy="1110" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="450" y="1110" class="node-text">SUCCESS</text>
+            </svg>
+            <div class="description">
+                <h3>💬 Direct Chat Flow Overview</h3>
+                <p><strong>Peer-to-Peer Messaging System:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Load contacts list with friends</li>
+                    <li>Show unread message count for each contact</li>
+                    <li>Display online/offline status</li>
+                    <li>Click contact to open chat thread</li>
+                    <li>Fetch last 50 messages from conversation</li>
+                    <li>Automatically mark all messages as read when opened</li>
+                    <li>Send new message via POST /api/chat</li>
+                    <li>Message saved to MongoDB Message collection</li>
+                    <li>Recipient notified in real-time or via polling</li>
+                    <li>Unread count updates via GET /api/chat/unread (optional polling)</li>
+                </ul>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div>
+                    <span class="legend-text">Start/End</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--info);"></div>
+                    <span class="legend-text">Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--secondary);"></div>
+                    <span class="legend-text">Data/API</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--error);"></div>
+                    <span class="legend-text">Error</span>
+                </div>
+            </div>
+        </div>
+        <!-- MARKETPLACE FLOW -->
+        <div class="flowchart-container" id="marketplace">
+            <h2 class="flowchart-title">Marketplace & Lost & Found Flow</h2>
+            <svg class="flowchart-svg" viewBox="0 0 1100 900">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#1f2937" />
+                    </marker>
+                </defs>
+                
+                <!-- MARKETPLACE SECTION -->
+                <text x="150" y="30" style="font-size: 16px; font-weight: bold; fill: var(--primary);">MARKETPLACE</text>
+                
+                <!-- START Market -->
+                <ellipse cx="150" cy="80" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="150" y="80" class="node-text">START</text>
+                
+                <line x1="150" y1="110" x2="150" y2="150" class="arrow"/>
+                
+                <!-- Create Listing -->
+                <rect x="50" y="150" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="150" y="175" class="node-text">User Clicks</text>
+                <text x="150" y="190" class="node-text">"Create Listing"</text>
+                
+                <line x1="150" y1="210" x2="150" y2="250" class="arrow"/>
+                
+                <!-- Form -->
+                <rect x="50" y="250" width="200" height="100" rx="8" class="node-process node-rect"/>
+                <text x="150" y="270" class="node-text">Show Form Modal</text>
+                <text x="150" y="288" class="node-text">• Title • Price</text>
+                <text x="150" y="306" class="node-text">• Description</text>
+                <text x="150" y="324" class="node-text">• Image upload</text>
+                
+                <line x1="150" y1="350" x2="150" y2="390" class="arrow"/>
+                
+                <!-- Validation -->
+                <polygon points="150,390 220,440 150,490 80,440" class="node-decision node-rect"/>
+                <text x="150" y="435" class="node-text">Valid?</text>
+                
+                <!-- Invalid -->
+                <line x1="80" y1="440" x2="20" y2="440" class="arrow arrow-error"/>
+                <rect x="-80" y="410" width="160" height="60" rx="8" class="node-error node-rect"/>
+                <text x="-20" y="435" class="node-text">Show Error</text>
+                
+                <!-- Valid -->
+                <line x1="220" y1="440" x2="320" y2="440" class="arrow arrow-success"/>
+                
+                <!-- Upload Image -->
+                <rect x="260" y="410" width="160" height="60" rx="8" class="node-data node-rect"/>
+                <text x="340" y="430" class="node-text">POST /api/</text>
+                <text x="340" y="447" class="node-text">upload</text>
+                
+                <line x1="150" y1="490" x2="150" y2="530" class="arrow"/>
+                
+                <!-- Create Item -->
+                <rect x="50" y="530" width="200" height="80" rx="8" class="node-data node-rect"/>
+                <text x="150" y="550" class="node-text">POST /api/market</text>
+                <text x="150" y="568" class="node-text">Create MarketItem</text>
+                <text x="150" y="586" class="node-text">in MongoDB</text>
+                
+                <line x1="150" y1="610" x2="150" y2="650" class="arrow"/>
+                
+                <!-- SUCCESS Market -->
+                <ellipse cx="150" cy="680" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="150" y="680" class="node-text">SUCCESS</text>
+                
+                <!-- BROWSING -->
+                <text x="400" y="30" style="font-size: 16px; font-weight: bold; fill: var(--primary);">BROWSING ITEMS</text>
+                
+                <!-- START Browse -->
+                <ellipse cx="400" cy="80" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="400" y="80" class="node-text">START</text>
+                
+                <line x1="400" y1="110" x2="400" y2="150" class="arrow"/>
+                
+                <!-- Get Items -->
+                <rect x="300" y="150" width="200" height="60" rx="8" class="node-data node-rect"/>
+                <text x="400" y="175" class="node-text">GET /api/market</text>
+                <text x="400" y="190" class="node-text">(fetch items)</text>
+                
+                <line x1="400" y1="210" x2="400" y2="250" class="arrow"/>
+                
+                <!-- Display Grid -->
+                <rect x="300" y="250" width="200" height="80" rx="8" class="node-process node-rect"/>
+                <text x="400" y="270" class="node-text">Render Grid</text>
+                <text x="400" y="288" class="node-text">Product cards</text>
+                <text x="400" y="306" class="node-text">Image • Price</text>
+                
+                <line x1="400" y1="330" x2="400" y2="370" class="arrow"/>
+                
+                <!-- Click Item -->
+                <polygon points="400,370 470,420 400,470 330,420" class="node-decision node-rect"/>
+                <text x="400" y="415" class="node-text">User</text>
+                <text x="400" y="432" class="node-text">Action?</text>
+                
+                <!-- View Details -->
+                <line x1="330" y1="420" x2="200" y2="420" class="arrow"/>
+                <rect x="100" y="390" width="150" height="60" rx="8" class="node-process node-rect"/>
+                <text x="175" y="415" class="node-text">Show Details</text>
+                <text x="175" y="430" class="node-text">& Seller Info</text>
+                
+                <!-- Contact Seller -->
+                <line x1="470" y1="420" x2="600" y2="420" class="arrow"/>
+                <rect x="500" y="390" width="150" height="60" rx="8" class="node-process node-rect"/>
+                <text x="575" y="410" class="node-text">Open Chat with</text>
+                <text x="575" y="427" class="node-text">Seller</text>
+                
+                <!-- SUCCESS Browse -->
+                <line x1="400" y1="470" x2="400" y2="510" class="arrow"/>
+                <ellipse cx="400" cy="540" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="400" y="540" class="node-text">SUCCESS</text>
+                
+                <!-- LOST & FOUND SECTION -->
+                <text x="850" y="30" style="font-size: 16px; font-weight: bold; fill: var(--primary);">LOST & FOUND</text>
+                
+                <!-- START Lost -->
+                <ellipse cx="850" cy="80" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="850" y="80" class="node-text">START</text>
+                
+                <line x1="850" y1="110" x2="850" y2="150" class="arrow"/>
+                
+                <!-- Report Lost -->
+                <rect x="750" y="150" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="850" y="175" class="node-text">User Clicks</text>
+                <text x="850" y="190" class="node-text">"Report Lost"</text>
+                
+                <line x1="850" y1="210" x2="850" y2="250" class="arrow"/>
+                
+                <!-- Lost Form -->
+                <rect x="750" y="250" width="200" height="100" rx="8" class="node-process node-rect"/>
+                <text x="850" y="270" class="node-text">Show Lost Form</text>
+                <text x="850" y="288" class="node-text">• Item name</text>
+                <text x="850" y="306" class="node-text">• Location</text>
+                <text x="850" y="324" class="node-text">• Photo</text>
+                
+                <line x1="850" y1="350" x2="850" y2="390" class="arrow"/>
+                
+                <!-- Validation Lost -->
+                <polygon points="850,390 920,440 850,490 780,440" class="node-decision node-rect"/>
+                <text x="850" y="435" class="node-text">Valid?</text>
+                
+                <!-- Invalid -->
+                <line x1="780" y1="440" x2="680" y2="440" class="arrow arrow-error"/>
+                <rect x="580" y="410" width="160" height="60" rx="8" class="node-error node-rect"/>
+                <text x="660" y="435" class="node-text">Show Error</text>
+                
+                <!-- Valid -->
+                <line x1="920" y1="440" x2="1010" y2="440" class="arrow arrow-success"/>
+                
+                <!-- Upload Photo -->
+                <rect x="950" y="410" width="160" height="60" rx="8" class="node-data node-rect"/>
+                <text x="1030" y="430" class="node-text">POST /api/</text>
+                <text x="1030" y="447" class="node-text">upload</text>
+                
+                <line x1="850" y1="490" x2="850" y2="530" class="arrow"/>
+                
+                <!-- Create Lost Item -->
+                <rect x="750" y="530" width="200" height="80" rx="8" class="node-data node-rect"/>
+                <text x="850" y="550" class="node-text">POST /api/</text>
+                <text x="850" y="568" class="node-text">lost-found</text>
+                <text x="850" y="586" class="node-text">Create LostItem</text>
+                
+                <line x1="850" y1="610" x2="850" y2="650" class="arrow"/>
+                
+                <!-- SUCCESS Lost -->
+                <ellipse cx="850" cy="680" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="850" y="680" class="node-text">SUCCESS</text>
+            </svg>
+            <div class="description">
+                <h3>🛍️ Marketplace & Lost & Found Overview</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                    <div>
+                        <p style="font-weight: bold; margin-bottom: 10px;">🛒 Marketplace</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Post items for sale</li>
+                            <li>Upload product images</li>
+                            <li>Browse marketplace grid</li>
+                            <li>View seller profiles</li>
+                            <li>Direct message sellers</li>
+                            <li>MarketItem stored in MongoDB</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p style="font-weight: bold; margin-bottom: 10px;">📍 Lost & Found</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Report lost items</li>
+                            <li>Include location details</li>
+                            <li>Upload item photos</li>
+                            <li>Search lost items</li>
+                            <li>Contact poster</li>
+                            <li>Mark as found/recovered</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div>
+                    <span class="legend-text">Start/End</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--info);"></div>
+                    <span class="legend-text">Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--secondary);"></div>
+                    <span class="legend-text">Data/API</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--error);"></div>
+                    <span class="legend-text">Error</span>
+                </div>
+            </div>
+        </div>
+        <!-- ADMIN FLOW -->
+        <div class="flowchart-container" id="admin">
+            <h2 class="flowchart-title">Admin Console - Announcements & User Management</h2>
+            <svg class="flowchart-svg" viewBox="0 0 900 1000">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#1f2937" />
+                    </marker>
+                </defs>
+                
+                <!-- START -->
+                <ellipse cx="450" cy="50" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="450" y="50" class="node-text">START</text>
+                
+                <line x1="450" y1="80" x2="450" y2="120" class="arrow"/>
+                
+                <!-- Navigate Admin -->
+                <rect x="350" y="120" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="450" y="150" class="node-text">User Navigates to</text>
+                <text x="450" y="165" class="node-text">/dashboard/admin</text>
+                
+                <line x1="450" y1="180" x2="450" y2="220" class="arrow"/>
+                
+                <!-- Check Admin -->
+                <polygon points="450,220 520,270 450,320 380,270" class="node-decision node-rect"/>
+                <text x="450" y="265" class="node-text">Admin</text>
+                <text x="450" y="282" class="node-text">Role?</text>
+                
+                <!-- Not Admin -->
+                <line x1="380" y1="270" x2="200" y2="270" class="arrow arrow-error"/>
+                <rect x="100" y="240" width="200" height="60" rx="8" class="node-error node-rect"/>
+                <text x="200" y="265" class="node-text">403: Forbidden</text>
+                <text x="200" y="280" class="node-text">Redirect to /dashboard</text>
+                
+                <!-- Is Admin -->
+                <line x1="520" y1="270" x2="700" y2="270" class="arrow arrow-success"/>
+                
+                <!-- Show Dashboard -->
+                <rect x="600" y="240" width="200" height="60" rx="8" class="node-process node-rect"/>
+                <text x="700" y="265" class="node-text">Render Admin</text>
+                <text x="700" y="280" class="node-text">Dashboard</text>
+                
+                <line x1="450" y1="320" x2="450" y2="360" class="arrow"/>
+                
+                <!-- Admin Options -->
+                <polygon points="450,360 520,410 450,460 380,410" class="node-decision node-rect"/>
+                <text x="450" y="405" class="node-text">Select</text>
+                <text x="450" y="422" class="node-text">Option</text>
+                
+                <!-- ANNOUNCEMENTS PATH -->
+                <line x1="380" y1="410" x2="250" y2="410" class="arrow"/>
+                <text x="310" y="400" style="fill: var(--dark); font-size: 12px;">Announcement</text>
+                
+                <rect x="100" y="380" width="300" height="120" rx="8" class="node-process node-rect"/>
+                <text x="250" y="400" class="node-text">Publish Announcement</text>
+                <text x="250" y="418" class="node-text">1. Fill form (title, content)</text>
+                <text x="250" y="436" class="node-text">2. Upload image (optional)</text>
+                <text x="250" y="454" class="node-text">3. POST /api/admin/</text>
+                <text x="250" y="472" class="node-text">announcements</text>
+                
+                <line x1="250" y1="500" x2="250" y2="540" class="arrow"/>
+                
+                <rect x="100" y="540" width="300" height="80" rx="8" class="node-data node-rect"/>
+                <text x="250" y="560" class="node-text">Create Announcement</text>
+                <text x="250" y="578" class="node-text">Notify all users</text>
+                <text x="250" y="596" class="node-text">Create Notifications</text>
+                
+                <!-- USER MANAGEMENT PATH -->
+                <line x1="520" y1="410" x2="650" y2="410" class="arrow"/>
+                <text x="580" y="400" style="fill: var(--dark); font-size: 12px;">Users</text>
+                
+                <rect x="500" y="380" width="300" height="120" rx="8" class="node-process node-rect"/>
+                <text x="650" y="400" class="node-text">Manage Users</text>
+                <text x="650" y="418" class="node-text">1. GET /api/admin/users</text>
+                <text x="650" y="436" class="node-text">2. View user list</text>
+                <text x="650" y="454" class="node-text">3. Make admin / Remove</text>
+                <text x="650" y="472" class="node-text">4. Suspend/Activate</text>
+                
+                <line x1="650" y1="500" x2="650" y2="540" class="arrow"/>
+                
+                <rect x="500" y="540" width="300" height="80" rx="8" class="node-data node-rect"/>
+                <text x="650" y="560" class="node-text">Update User Roles</text>
+                <text x="650" y="578" class="node-text">PUT /api/admin/users</text>
+                <text x="650" y="596" class="node-text">Save to MongoDB</text>
+                
+                <!-- Merge paths -->
+                <line x1="250" y1="620" x2="450" y2="660" class="arrow"/>
+                <line x1="650" y1="620" x2="450" y2="660" class="arrow"/>
+                
+                <!-- SUCCESS -->
+                <ellipse cx="450" cy="700" rx="40" ry="30" class="node-start node-rect"/>
+                <text x="450" y="700" class="node-text">SUCCESS</text>
+            </svg>
+            <div class="description">
+                <h3>⚙️ Admin Console Overview</h3>
+                <p><strong>Protected Admin-Only Access:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Route requires user.role === "admin"</li>
+                    <li>Admin verification at /api/admin routes</li>
+                    <li>403 Forbidden for non-admin users</li>
+                </ul>
+                
+                <h4 style="margin-top: 20px; color: var(--primary);">🔔 Publishing Announcements</h4>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Create announcement with title and content</li>
+                    <li>Optional image upload to Cloudinary</li>
+                    <li>POST to /api/admin/announcements</li>
+                    <li>Automatically create notifications for all users</li>
+                    <li>Students see in /dashboard/notifications</li>
+                    <li>Toast notifications to logged-in users</li>
+                </ul>
+                
+                <h4 style="margin-top: 20px; color: var(--primary);">👥 User Management</h4>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>View all users in system</li>
+                    <li>Search and filter by email</li>
+                    <li>Promote users to admin role</li>
+                    <li>Revoke admin privileges</li>
+                    <li>Suspend/reactivate accounts</li>
+                    <li>Changes saved to MongoDB User collection</li>
+                    <li>User must re-login to see role changes in JWT</li>
+                </ul>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div>
+                    <span class="legend-text">Start/End</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--info);"></div>
+                    <span class="legend-text">Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--secondary);"></div>
+                    <span class="legend-text">Data/API</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--error);"></div>
+                    <span class="legend-text">Error/Forbidden</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function showFlowchart(flowchartId) {
+            // Hide all flowcharts
+            const containers = document.querySelectorAll('.flowchart-container');
+            containers.forEach(container => {
+                container.classList.remove('active');
+            });
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.flowchart-btn');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+            });
+            // Show selected flowchart
+            document.getElementById(flowchartId).classList.add('active');
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        // Add smooth scroll behavior
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

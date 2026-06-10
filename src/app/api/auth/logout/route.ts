@@ -18,8 +18,8 @@ export async function POST() {
       cookieStore.delete('refreshToken');
     }
 
-    return NextResponse.json({ message: 'Logged out successfully' });
+    return NextResponse.json({ message: 'Logged out successfully.' });
   } catch {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Could not log out right now. Please try again.' }, { status: 500 });
   }
 }

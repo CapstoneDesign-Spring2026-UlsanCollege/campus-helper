@@ -3,13 +3,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { motion } from 'framer-motion';
-import { ArrowRight, Bell, Bot, Calendar, Layers3, Megaphone, TrendingUp, Zap } from 'lucide-react';
+import { ArrowRight, Bell, Bot, Calendar, Layers3, Megaphone, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { CommandHero } from '@/components/layout/CommandHero';
 import { fetchWithAuth } from '@/lib/client-api';
 
 type Semester = { _id: string; name: string; status: string; classStart?: string; classEnd?: string };
-type Announcement = { _id: string; title: string; content: string; createdAt?: string };
+type Announcement = {
+  _id: string;
+  title: string;
+  content: string;
+  createdAt?: string;
+  priority?: 'normal' | 'important' | 'urgent';
+  pinned?: boolean;
+  publishAt?: string;
+  expiresAt?: string;
+};
 type TimetableItem = { _id: string; day: string; subject: string; time: string; room?: string };
 type AcademicEvent = { _id: string; title: string; category: string; description?: string; startDate: string; endDate?: string };
 type NotificationSummary = { unreadNotifications: number; unreadMessages: number; totalUnread: number };
@@ -167,8 +176,29 @@ export default function DashboardPage() {
             ) : (
               announcements.map((announcement) => (
                 <div key={announcement._id} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="font-semibold text-white">{announcement.title}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-white">{announcement.title}</p>
+                    {announcement.pinned ? (
+                      <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-cyan-100">
+                        Pinned
+                      </span>
+                    ) : null}
+                    <span className={`rounded-full px-2 py-1 text-[9px] uppercase tracking-[0.18em] ${
+                      announcement.priority === 'urgent'
+                        ? 'border border-red-300/20 bg-red-400/10 text-red-100'
+                        : announcement.priority === 'important'
+                          ? 'border border-amber-300/20 bg-amber-400/10 text-amber-100'
+                          : 'border border-white/10 bg-white/[0.03] text-slate-400'
+                    }`}>
+                      {announcement.priority || 'normal'}
+                    </span>
+                  </div>
                   <p className="mt-2 line-clamp-3 text-sm text-slate-400">{announcement.content}</p>
+                  {announcement.createdAt ? (
+                    <p className="mt-3 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                      Published {new Date(announcement.publishAt || announcement.createdAt).toLocaleString()}
+                    </p>
+                  ) : null}
                 </div>
               ))
             )}

@@ -48,3 +48,9 @@ next-env.d.ts
 dev-server*.log
 _remote_campus_helper_inspect/
 _pages_publish_clone/
+
+# generated local artifacts
+.cursor-*-output.txt
+.vercel.preview.env
+/public/uploads/
+/outputs/

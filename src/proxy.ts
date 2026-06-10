@@ -22,24 +22,32 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  try {
-    if (accessToken) {
+  if (accessToken) {
+    try {
       const secret = new TextEncoder().encode(getJwtAccessSecret());
       await jose.jwtVerify(accessToken, secret);
       return NextResponse.next();
+    } catch {
+      // If the short-lived access token expired, still allow the request when
+      // the refresh cookie is valid. API routes can then resolve the user from
+      // the same refresh cookie instead of failing streaming requests.
     }
+  }
 
-    if (refreshCookie) {
+  if (refreshCookie) {
+    try {
       const secret = new TextEncoder().encode(getJwtRefreshSecret());
       await jose.jwtVerify(refreshCookie, secret);
       return NextResponse.next();
+    } catch {
+      // fall through to auth failure below
     }
-  } catch {
-    if (request.nextUrl.pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Token expired or invalid' }, { status: 401 });
-    }
-    return NextResponse.redirect(new URL('/login', request.url));
   }
+
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Token expired or invalid' }, { status: 401 });
+  }
+  return NextResponse.redirect(new URL('/login', request.url));
 }
 
 export const config = {

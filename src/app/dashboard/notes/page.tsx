@@ -6,17 +6,22 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
+  Bookmark,
+  BookmarkCheck,
   CalendarDays,
+  Clipboard,
+  Plus,
   Eye,
   Download,
   FileImage,
   FileText,
-  Filter,
   Heart,
   Info,
   MessageSquareMore,
+  Search,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   UploadCloud,
   X,
 } from 'lucide-react';
@@ -45,6 +50,8 @@ type Note = {
   thumbnailUrl?: string;
   createdAt: string;
   likes?: string[];
+  likeCount?: number;
+  isSaved?: boolean;
   uploadedBy?: NoteOwner;
 };
 
@@ -86,6 +93,22 @@ function getFileExtension(note: Note) {
   return extension.toUpperCase();
 }
 
+function getDownloadFileName(disposition: string | null, fallback: string) {
+  if (!disposition) return fallback;
+
+  const utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1]);
+    } catch {
+      return utfMatch[1];
+    }
+  }
+
+  const asciiMatch = disposition.match(/filename="([^"]+)"/i);
+  return asciiMatch?.[1] || fallback;
+}
+
 function SelectedNotePreview({ file }: { file: File }) {
   const objectUrl = useMemo(() => URL.createObjectURL(file), [file]);
 
@@ -116,6 +139,9 @@ export default function NotesPage() {
   const router = useRouter();
   const [notes, setNotes] = useState<Note[]>([]);
   const [filterDept, setFilterDept] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'title' | 'oldest'>('newest');
+  const [savedOnly, setSavedOnly] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statusText, setStatusText] = useState('Ready to upload');
   const [storageMode, setStorageMode] = useState<'cloudinary' | 'local' | null>(null);
@@ -124,25 +150,51 @@ export default function NotesPage() {
   const [department, setDepartment] = useState('Computer Science');
   const [myId, setMyId] = useState('');
   const [pendingLikeId, setPendingLikeId] = useState<string | null>(null);
+  const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
   const [pendingDownloadId, setPendingDownloadId] = useState<string | null>(null);
+  const [pendingCopyId, setPendingCopyId] = useState<string | null>(null);
+  const [copyDialog, setCopyDialog] = useState<{ title: string; message: string; noteTitle?: string } | null>(null);
+  const [downloadFallback, setDownloadFallback] = useState<{ noteId: string; url: string; fileName: string } | null>(null);
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [isPdfPreviewLoading, setIsPdfPreviewLoading] = useState(false);
+  const [pdfPreviewError, setPdfPreviewError] = useState('');
   const [hasMounted, setHasMounted] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
   useBodyScrollLock(Boolean(previewNote));
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
+  useEffect(() => {
+    const openComposer = () => setIsComposerOpen(true);
+    const pendingComposer = sessionStorage.getItem('campus:open-composer');
+
+    if (pendingComposer === '/dashboard/notes' || window.location.search.includes('compose=1')) {
+      setIsComposerOpen(true);
+      sessionStorage.removeItem('campus:open-composer');
+    }
+
+    window.addEventListener('campus:open-composer', openComposer);
+    return () => window.removeEventListener('campus:open-composer', openComposer);
+  }, []);
+
   const fetchNotes = useCallback(async () => {
     try {
-      const url = filterDept ? `/api/notes?department=${encodeURIComponent(filterDept)}` : '/api/notes';
+      const params = new URLSearchParams();
+      if (filterDept) params.set('department', filterDept);
+      if (searchQuery.trim()) params.set('q', searchQuery.trim());
+      if (sortBy) params.set('sort', sortBy);
+      if (savedOnly) params.set('saved', 'true');
+      const url = params.size > 0 ? `/api/notes?${params.toString()}` : '/api/notes';
       const res = await fetchWithAuth(url);
       const data = await res.json().catch(() => []);
       if (Array.isArray(data)) setNotes(data);
     } catch {
       // ignore
     }
-  }, [filterDept]);
+  }, [filterDept, searchQuery, sortBy, savedOnly]);
 
   useEffect(() => {
     void fetchNotes();
@@ -205,7 +257,7 @@ export default function NotesPage() {
         setNotes((current) =>
           current.map((note) =>
             note._id === noteId
-              ? { ...note, likes: data.likes }
+              ? { ...note, likes: data.likes, likeCount: data.likeCount }
               : note
           )
         );
@@ -218,26 +270,158 @@ export default function NotesPage() {
     }
   };
 
+  const toggleSave = async (noteId: string) => {
+    if (!myId || pendingSaveId) return;
+
+    const snapshot = notes;
+    const currentNote = notes.find((note) => note._id === noteId);
+    if (!currentNote) return;
+
+    setPendingSaveId(noteId);
+    setNotes((current) =>
+      current.map((note) =>
+        note._id === noteId
+          ? { ...note, isSaved: !note.isSaved }
+          : note
+      )
+    );
+
+    try {
+      const res = await fetchWithAuth(`/api/notes/${noteId}/save`, { method: 'POST' });
+      if (!res.ok) {
+        throw new Error(await readApiError(res, 'Failed to update saved note.'));
+      }
+
+      const data = await res.json().catch(() => null);
+      if (data && typeof data.saved === 'boolean') {
+        setNotes((current) =>
+          current
+            .map((note) =>
+              note._id === noteId
+                ? { ...note, isSaved: data.saved }
+                : note
+            )
+            .filter((note) => !savedOnly || note.isSaved)
+        );
+      }
+    } catch (error) {
+      setNotes(snapshot);
+      toast.error(error instanceof Error ? error.message : 'Failed to update saved note.');
+    } finally {
+      setPendingSaveId(null);
+    }
+  };
+
   const handleDownload = async (note: Note) => {
     if (pendingDownloadId) return;
 
     setPendingDownloadId(note._id);
+    setDownloadFallback(null);
 
     try {
-      const frame = document.createElement('iframe');
-      frame.style.display = 'none';
-      frame.src = `/api/notes/${note._id}/download`;
-      document.body.appendChild(frame);
+      const res = await fetchWithAuth(`/api/notes/${note._id}/download`);
+      if (!res.ok) {
+        throw new Error(await readApiError(res, 'Failed to download note.'));
+      }
 
-      window.setTimeout(() => {
-        frame.remove();
-      }, 4000);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = getDownloadFileName(res.headers.get('content-disposition'), getDisplayFileName(note));
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
+      toast.success('Download started.');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to download note.');
+      const message = error instanceof Error ? error.message : 'Failed to download note.';
+      if (/^https?:\/\//i.test(note.fileUrl)) {
+        setDownloadFallback({
+          noteId: note._id,
+          url: note.fileUrl,
+          fileName: getDisplayFileName(note),
+        });
+        toast.error(`${message} A direct file link is now shown on the note card.`);
+      } else {
+        toast.error(message);
+      }
     } finally {
       window.setTimeout(() => {
         setPendingDownloadId((current) => (current === note._id ? null : current));
       }, 1200);
+    }
+  };
+
+  const handleCopyNoteText = async (note: Note) => {
+    if (pendingCopyId) return;
+    setPendingCopyId(note._id);
+
+    try {
+      const res = await fetchWithAuth(`/api/notes/${note._id}/text`);
+      let text = '';
+      const openNothingToCopyDialog = (message?: string) => {
+        setCopyDialog({
+          title: 'Nothing to copy',
+          message:
+            message ||
+            'This note does not contain readable text that can be copied yet. You can still preview or download the original file.',
+          noteTitle: note.title,
+        });
+      };
+
+      if (res.ok) {
+        const data = await res.json().catch(() => null) as { text?: string } | null;
+        text = data?.text?.trim() || '';
+      } else {
+        const data = await res.json().catch(() => null) as { code?: string; error?: string } | null;
+        const message = data?.error?.trim() || 'Could not copy note content.';
+        if (res.status === 422 || data?.code === 'nothing_to_copy') {
+          openNothingToCopyDialog();
+          return;
+        }
+        throw new Error(message);
+      }
+
+      if (!text) {
+        openNothingToCopyDialog();
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+
+      toast.success('Copied to clipboard.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not copy note content.';
+      const lowerMessage = message.toLowerCase();
+
+      if (
+        lowerMessage.includes('no selectable text') ||
+        lowerMessage.includes('no copyable text') ||
+        lowerMessage.includes('no readable text')
+      ) {
+        setCopyDialog({
+          title: 'Nothing to copy',
+          message: 'This note does not contain readable text that can be copied yet. You can still preview or download the original file.',
+          noteTitle: note.title,
+        });
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setPendingCopyId(null);
     }
   };
 
@@ -252,6 +436,62 @@ export default function NotesPage() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
+  }, [previewNote]);
+
+  useEffect(() => {
+    if (!previewNote || !isPdfAsset(previewNote.fileType, previewNote.fileName)) {
+      setPdfPreviewError('');
+      setIsPdfPreviewLoading(false);
+      setPdfPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      return;
+    }
+
+    let isCancelled = false;
+    let objectUrl: string | null = null;
+
+    const loadPdfPreview = async () => {
+      setIsPdfPreviewLoading(true);
+      setPdfPreviewError('');
+
+      try {
+        const res = await fetchWithAuth(`/api/notes/${previewNote._id}/view`);
+        if (!res.ok) {
+          throw new Error(await readApiError(res, 'Unable to load PDF preview.'));
+        }
+
+        const blob = await res.blob();
+        objectUrl = URL.createObjectURL(blob);
+
+        if (!isCancelled) {
+          setPdfPreviewUrl((current) => {
+            if (current) URL.revokeObjectURL(current);
+            return objectUrl;
+          });
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setPdfPreviewError(error instanceof Error ? error.message : 'Unable to load PDF preview.');
+          setPdfPreviewUrl((current) => {
+            if (current) URL.revokeObjectURL(current);
+            return null;
+          });
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsPdfPreviewLoading(false);
+        }
+      }
+    };
+
+    void loadPdfPreview();
+
+    return () => {
+      isCancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [previewNote]);
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -287,6 +527,7 @@ export default function NotesPage() {
       const createdNote = (await res.json().catch(() => null)) as Note | null;
       setTitle('');
       setFile(null);
+      setIsComposerOpen(false);
       setStorageMode(null);
       setStatusText('Completed');
       toast.success('Note uploaded successfully.');
@@ -313,7 +554,7 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="responsive-page space-y-6 md:space-y-8">
       <StudioHero
         badge="Academic Media Bay"
         title="Campus Notes"
@@ -322,14 +563,42 @@ export default function NotesPage() {
         accentClassName="text-brand-indigo"
       />
 
+      <div className="sticky-action-band -mt-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand-indigo">Upload</p>
+          <p className="mt-1 text-xs text-slate-400">Share a new note, PDF, or study image with the library.</p>
+        </div>
+        {!isComposerOpen ? (
+          <Button type="button" onClick={() => setIsComposerOpen(true)} className="min-h-[46px] min-w-[150px] sm:min-w-[170px]">
+            <Plus size={18} className="mr-2" />
+            Add note
+          </Button>
+        ) : null}
+      </div>
+
+      {isComposerOpen ? (
       <Card className="overflow-hidden border-white/10 bg-black/45 p-0">
-        <div className="p-6 lg:p-7">
+        <div className="p-4 sm:p-5 lg:p-7">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.34em] text-brand-indigo">Upload Console</p>
-                <h3 className="mt-2 text-2xl font-bold text-white">Share a note that someone will actually want to open</h3>
+                <h3 className="mt-2 text-xl font-bold text-white sm:text-2xl">Share a note that someone will actually want to open</h3>
               </div>
-              <Sparkles className="hidden h-6 w-6 text-brand-indigo md:block" />
+              <div className="flex items-center gap-3">
+                <Sparkles className="hidden h-6 w-6 text-brand-indigo md:block" />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsComposerOpen(false);
+                    setStatusText('Ready to upload');
+                  }}
+                  variant="ghost"
+                    className="h-11 rounded-xl border border-red-400/20 px-3 text-red-300 hover:bg-red-500/15"
+                >
+                  <X size={16} className="mr-2" />
+                  Close
+                </Button>
+              </div>
             </div>
 
             <form onSubmit={handleUpload} className="space-y-5">
@@ -344,7 +613,7 @@ export default function NotesPage() {
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Department</label>
                   <select
-                    className="min-h-[48px] w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-brand-indigo"
+                    className="focus-ring min-h-[48px] w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-brand-indigo"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
                   >
@@ -356,7 +625,7 @@ export default function NotesPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-dashed border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5">
+              <div className="rounded-3xl border border-dashed border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4 sm:p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-white">Add an image, PDF, or study document</p>
@@ -371,7 +640,7 @@ export default function NotesPage() {
                   />
                   <label
                     htmlFor="file_upload"
-                    className="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-2xl border border-brand-indigo/30 bg-brand-indigo/10 px-5 py-3 text-sm font-semibold text-white transition hover:border-brand-indigo hover:bg-brand-indigo/15"
+                    className="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-2xl border border-brand-indigo/30 bg-brand-indigo/10 px-5 py-3 text-sm font-semibold text-white transition hover:border-brand-indigo hover:bg-brand-indigo/15 md:w-auto"
                   >
                     <UploadCloud size={18} />
                     Choose file
@@ -410,15 +679,23 @@ export default function NotesPage() {
             </form>
           </div>
       </Card>
+      ) : null}
 
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Filter size={18} className="text-gray-400" />
-            <p className="text-sm font-semibold text-white">Filter by department</p>
+        <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/40 p-3 sm:p-4 lg:grid-cols-[1.1fr_0.8fr_0.7fr_auto]">
+          <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Search size={18} className="text-gray-400" />
+              <input
+                className="min-w-0 w-full bg-transparent text-base text-white outline-none placeholder:text-gray-500 md:text-sm"
+                placeholder="Search by title or file name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
           <select
-            className="min-h-[44px] rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-indigo"
+            className="focus-ring min-h-[48px] rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white outline-none transition focus:border-brand-indigo md:text-sm"
             value={filterDept}
             onChange={(e) => setFilterDept(e.target.value)}
           >
@@ -428,6 +705,25 @@ export default function NotesPage() {
             <option value="Design" className="bg-black text-white">Design</option>
             <option value="Engineering" className="bg-black text-white">Engineering</option>
           </select>
+          <select
+            className="focus-ring min-h-[48px] rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white outline-none transition focus:border-brand-indigo md:text-sm"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          >
+            <option value="newest" className="bg-black text-white">Newest first</option>
+            <option value="popular" className="bg-black text-white">Most liked</option>
+            <option value="title" className="bg-black text-white">Title A-Z</option>
+            <option value="oldest" className="bg-black text-white">Oldest first</option>
+          </select>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setSavedOnly((current) => !current)}
+            className={`min-h-[48px] rounded-xl border px-4 text-sm ${savedOnly ? 'border-brand-indigo/30 bg-brand-indigo/15 text-white' : 'border-white/10 bg-black/40 text-gray-300 hover:bg-white/10'}`}
+          >
+            {savedOnly ? <BookmarkCheck size={16} className="mr-2" /> : <Bookmark size={16} className="mr-2" />}
+            Saved only
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -442,10 +738,14 @@ export default function NotesPage() {
               const label = getFileLabel(note.fileType, note.fileName);
               const previewImage = getCardPreviewImage(note);
               const hasPreview = Boolean(previewImage);
-              const likeCount = note.likes?.length || 0;
+              const likeCount = typeof note.likeCount === 'number' ? note.likeCount : (note.likes?.length || 0);
+              const saved = Boolean(note.isSaved);
               const isLiked = Boolean(myId && note.likes?.includes(myId));
               const isLikePending = pendingLikeId === note._id;
+              const isSavePending = pendingSaveId === note._id;
               const isDownloadPending = pendingDownloadId === note._id;
+              const isCopyPending = pendingCopyId === note._id;
+              const fallback = downloadFallback?.noteId === note._id ? downloadFallback : null;
               const fileName = getDisplayFileName(note);
 
               return (
@@ -481,7 +781,7 @@ export default function NotesPage() {
                           </div>
                         )}
                       </div>
-                      <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-white">
+                      <div className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white sm:left-4 sm:top-4 sm:tracking-[0.28em]">
                         {note.department}
                       </div>
                       <button
@@ -494,7 +794,7 @@ export default function NotesPage() {
                       </button>
                     </div>
 
-                    <div className="flex flex-1 flex-col p-5">
+                    <div className="flex flex-1 flex-col p-4 sm:p-5">
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-brand-indigo">{label}</p>
@@ -515,14 +815,53 @@ export default function NotesPage() {
                         </button>
                       </div>
 
-                      <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
-                        Uploaded {new Date(note.createdAt).toLocaleDateString()}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs uppercase tracking-[0.24em] text-gray-500">
+                          Uploaded {new Date(note.createdAt).toLocaleDateString()}
+                        </p>
+                        {likeCount >= 3 && (
+                          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.22em] text-emerald-200">
+                            <TrendingUp size={10} className="mr-1 inline-block" />
+                            Popular
+                          </span>
+                        )}
+                        {saved && (
+                          <span className="rounded-full border border-brand-indigo/20 bg-brand-indigo/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.22em] text-cyan-200">
+                            Saved
+                          </span>
+                        )}
+                      </div>
 
                       <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-[0.24em] text-gray-500">File name</p>
-                        <p className="mt-1 truncate text-sm font-medium text-white/90">{fileName}</p>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[10px] uppercase tracking-[0.24em] text-gray-500">File name</p>
+                            <p className="mt-1 truncate text-sm font-medium text-white/90">{fileName}</p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={isCopyPending}
+                            onClick={() => void handleCopyNoteText(note)}
+                            className={`inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/30 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-300 transition hover:bg-white/10 hover:text-white ${isCopyPending ? 'opacity-60' : ''}`}
+                          >
+                            <Clipboard size={13} className="mr-1.5" />
+                            {isCopyPending ? 'Reading' : 'Copy'}
+                          </button>
+                        </div>
                       </div>
+
+                      {fallback && (
+                        <a
+                          href={fallback.url}
+                          download={fallback.fileName}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-brand-accent/25 bg-brand-accent/10 px-4 text-sm font-semibold text-white transition hover:bg-brand-accent/15"
+                        >
+                          <Download size={14} className="mr-2" />
+                          Open direct PDF link
+                        </a>
+                      )}
 
                       {note.uploadedBy && (
                         <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
@@ -538,7 +877,7 @@ export default function NotesPage() {
                               type="button"
                               variant="ghost"
                               onClick={() => openChatForUploader(note.uploadedBy!)}
-                              className="h-10 shrink-0 rounded-xl border border-white/10 bg-black/30 px-3 text-[10px] uppercase tracking-[0.24em] text-white hover:bg-brand-indigo/20"
+                              className="h-10 shrink-0 rounded-xl border border-white/10 bg-black/30 px-3 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-brand-indigo/20"
                             >
                               <MessageSquareMore size={14} className="mr-2" />
                               Message
@@ -547,26 +886,39 @@ export default function NotesPage() {
                         </div>
                       )}
 
-                      <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <button
-                          type="button"
-                          onClick={() => void toggleLike(note._id)}
-                          disabled={isLikePending || !myId}
-                          className={`inline-flex items-center rounded-xl border px-3 py-2 text-xs transition ${
-                            isLiked
-                              ? 'border-red-400/30 bg-red-500/10 text-red-200'
-                              : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
-                          } ${isLikePending ? 'opacity-70' : ''}`}
-                        >
-                          <Heart size={12} className={`mr-2 ${isLiked ? 'fill-current' : ''}`} />
-                          {likeCount}
-                        </button>
-                        <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className="mt-5 border-t border-white/10 pt-4">
+                        <div className="action-grid">
+                          <button
+                            type="button"
+                            onClick={() => void toggleLike(note._id)}
+                            disabled={isLikePending || !myId}
+                            className={`inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                              isLiked
+                                ? 'border-red-400/30 bg-red-500/10 text-red-200'
+                                : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
+                            } ${isLikePending ? 'opacity-70' : ''}`}
+                          >
+                            <Heart size={14} className={`mr-2 ${isLiked ? 'fill-current' : ''}`} />
+                            <span>{likeCount}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void toggleSave(note._id)}
+                            disabled={isSavePending || !myId}
+                            className={`inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                              saved
+                                ? 'border-brand-indigo/30 bg-brand-indigo/10 text-cyan-200'
+                                : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
+                            } ${isSavePending ? 'opacity-70' : ''}`}
+                          >
+                            {saved ? <BookmarkCheck size={14} className="mr-2" /> : <Bookmark size={14} className="mr-2" />}
+                            {saved ? 'Saved' : 'Save'}
+                          </button>
                           <Button
                             type="button"
                             variant="ghost"
                             onClick={() => setPreviewNote(note)}
-                            className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white hover:bg-white/10"
+                            className="min-h-[52px] w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white hover:bg-white/10"
                           >
                             <Eye size={14} className="mr-2" />
                             Preview
@@ -576,10 +928,10 @@ export default function NotesPage() {
                             variant="ghost"
                             isLoading={isDownloadPending}
                             onClick={() => void handleDownload(note)}
-                            className="h-10 rounded-xl border border-brand-indigo/20 bg-brand-indigo/10 px-4 text-sm text-white hover:bg-brand-indigo/15"
+                            className="min-h-[52px] w-full rounded-2xl border border-brand-indigo/20 bg-brand-indigo/10 px-4 text-sm text-white hover:bg-brand-indigo/15"
                           >
-                              <Download size={14} className="mr-2" />
-                              Download note
+                            <Download size={14} className="mr-2" />
+                            Download
                           </Button>
                         </div>
                       </div>
@@ -621,6 +973,15 @@ export default function NotesPage() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
+                      disabled={pendingCopyId === previewNote._id}
+                      onClick={() => void handleCopyNoteText(previewNote)}
+                      className={`inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300 transition hover:bg-white/10 hover:text-white ${pendingCopyId === previewNote._id ? 'opacity-60' : ''}`}
+                    >
+                      <Clipboard size={14} className="mr-2" />
+                      {pendingCopyId === previewNote._id ? 'Reading' : 'Copy text'}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setPreviewNote(null)}
                       className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
                       aria-label="Close preview"
@@ -641,11 +1002,36 @@ export default function NotesPage() {
                       className="h-full max-h-[75vh] w-full object-contain"
                     />
                   ) : isPdfAsset(previewNote.fileType, previewNote.fileName) ? (
-                    <iframe
-                      src={`/api/notes/${previewNote._id}/view`}
-                      title={previewNote.title}
-                      className="h-[75vh] w-full border-0"
-                    />
+                    isPdfPreviewLoading ? (
+                      <div className="flex h-[75vh] items-center justify-center px-6 text-center">
+                        <div>
+                          <p className="text-sm font-semibold text-white">Loading PDF preview...</p>
+                          <p className="mt-2 text-sm text-slate-400">We are preparing the uploaded document for inline viewing.</p>
+                        </div>
+                      </div>
+                    ) : pdfPreviewUrl ? (
+                      <iframe
+                        src={`${pdfPreviewUrl}#toolbar=0&navpanes=0`}
+                        title={previewNote.title}
+                        className="h-[75vh] w-full border-0"
+                      />
+                    ) : (
+                      <div className="flex h-[75vh] items-center justify-center px-6 text-center">
+                        <div className="max-w-lg">
+                          <p className="text-sm font-semibold text-white">Preview could not be loaded in the browser.</p>
+                          <p className="mt-2 text-sm text-slate-400">{pdfPreviewError || 'You can still download the original PDF below.'}</p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => void handleDownload(previewNote)}
+                            className="mt-5 min-h-[48px] rounded-2xl border border-brand-indigo/20 bg-brand-indigo/10 px-5 text-sm text-white hover:bg-brand-indigo/15"
+                          >
+                            <Download size={14} className="mr-2" />
+                            Download PDF
+                          </Button>
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className="grid h-full min-h-[55vh] grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_320px]">
                       <div className="relative overflow-hidden border-b border-white/10 lg:border-b-0 lg:border-r">
@@ -740,6 +1126,70 @@ export default function NotesPage() {
                   )}
                 </div>
               </div>
+            </div>,
+            document.body
+          )
+        : null}
+
+      {hasMounted && copyDialog
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[140] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+              onClick={() => setCopyDialog(null)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#070b15] p-6 text-center shadow-2xl shadow-black/60"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="nothing-to-copy-title"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,233,208,0.12),transparent_34%),radial-gradient(circle_at_bottom,rgba(255,188,92,0.08),transparent_32%)]" />
+                <div className="relative">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] border border-brand-accent/25 bg-brand-accent/10 text-brand-accent">
+                    <Clipboard size={28} />
+                  </div>
+                  <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.28em] text-brand-indigo">
+                    Copy check
+                  </p>
+                  <h3 id="nothing-to-copy-title" className="mt-2 text-2xl font-semibold text-white">
+                    {copyDialog.title}
+                  </h3>
+                  {copyDialog.noteTitle && (
+                    <p className="mt-2 truncate text-xs uppercase tracking-[0.22em] text-slate-500">
+                      {copyDialog.noteTitle}
+                    </p>
+                  )}
+                  <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-slate-300">
+                    {copyDialog.message}
+                  </p>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setCopyDialog(null)}
+                      className="min-h-[48px] rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.08]"
+                    >
+                      Close
+                    </button>
+                    {previewNote && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCopyDialog(null);
+                          void handleDownload(previewNote);
+                        }}
+                        className="min-h-[48px] rounded-2xl border border-brand-indigo/20 bg-brand-indigo/10 px-4 text-sm font-semibold text-white transition hover:bg-brand-indigo/15"
+                      >
+                        Download note
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
             </div>,
             document.body
           )

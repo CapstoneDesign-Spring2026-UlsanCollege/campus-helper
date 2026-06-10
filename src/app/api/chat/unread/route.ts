@@ -1,30 +1,23 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import Message from '@/models/Message';
-import jwt from 'jsonwebtoken';
-import { getJwtAccessSecret } from '@/lib/env';
-
-function getUserId(req: Request) {
-  const token = req.headers.get('authorization')?.split(' ')[1];
-  if(!token) return null;
-  try { return (jwt.verify(token, getJwtAccessSecret()) as { userId?: string }).userId || null; } catch { return null; }
-}
+import { getSessionUserId } from '@/lib/server-auth';
 
 export async function GET(req: Request) {
-  const userId = getUserId(req);
-  if(!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getSessionUserId(req);
+  if(!userId) return NextResponse.json({ error: 'Your session expired. Please sign in again.' }, { status: 401 });
 
   try {
      await connectDB();
      
-     // Aggregate absolute sum of physical messages explicitly sent to this user that have not been loaded via GET /api/chat
      const count = await Message.countDocuments({
          receiver: userId,
          read: false
      });
 
      return NextResponse.json({ count });
-  } catch {
-     return NextResponse.json({ error: 'Failed to compute array', count: 0 }, { status: 500 });
+  } catch (error) {
+     console.error('Unread chat count failed:', error);
+     return NextResponse.json({ error: 'Could not load unread message count.', count: 0 }, { status: 500 });
   }
 }

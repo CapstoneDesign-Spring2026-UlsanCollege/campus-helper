@@ -5,13 +5,17 @@ import User from '@/models/User';
 import nodemailer from 'nodemailer';
 import { getAppBaseUrl } from '@/lib/env';
 
+function isDemoResetFallbackEnabled() {
+  return process.env.ALLOW_DEMO_PASSWORD_RESET === 'true';
+}
+
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
     await connectDB();
     const user = await User.findOne({ email });
     if (!user) {
-       // Obfuscate response logically to prevent scraping enumeration
+       // Keep this generic to avoid account enumeration.
        return NextResponse.json({ message: 'If an account with that email exists, we sent a password reset link.' });
     }
 
@@ -24,7 +28,6 @@ export async function POST(req: Request) {
 
     const resetUrl = `${getAppBaseUrl()}/reset-password?token=${resetToken}`;
 
-    // Automatic hook logic for authentic SMTP environments. Drop env vars when ready!
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {
       const transporter = nodemailer.createTransport({
          service: 'gmail',
@@ -33,16 +36,31 @@ export async function POST(req: Request) {
       await transporter.sendMail({
          from: '"Ulsan Campus+" <no-reply@ulsancampus.com>',
          to: user.email,
-         subject: 'Password Verification Gateway',
-         text: `A reset has been designated for your account. Re-secure your parameters here: ${resetUrl}`
+         subject: 'Reset your Ulsan Campus+ password',
+         text: `We received a request to reset your password. Use this link to continue: ${resetUrl}`
+      });
+      return NextResponse.json({
+        message: 'If an account with that email exists, we sent a password reset link.',
+        deliveryMode: 'email',
+      });
+    }
+
+    if (isDemoResetFallbackEnabled()) {
+      return NextResponse.json({
+        message: 'Email delivery is not configured on this deployment yet. Use the temporary reset link below.',
+        deliveryMode: 'onscreen',
+        resetUrl,
       });
     } else if (process.env.NODE_ENV !== 'production') {
       // Never log raw reset tokens/URLs (they are secrets). In local dev without SMTP, print a redacted hint only.
       console.info('[forgot-password] SMTP not configured; reset email not sent (development mode).');
     }
 
-    return NextResponse.json({ message: 'If an account with that email exists, we sent a password reset link.' });
+    return NextResponse.json({
+      message: 'Password reset email is not configured yet on this deployment. Please contact the administrator.',
+      deliveryMode: 'unavailable',
+    });
   } catch {
-    return NextResponse.json({ error: 'System architecture errored out.' }, { status: 500 });
+    return NextResponse.json({ error: 'Could not start password reset. Please try again.' }, { status: 500 });
   }
 }

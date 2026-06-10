@@ -4,6 +4,8 @@
 
 **Team Name**: AI Campus Innovators  
 **Repository**: https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper
+**Midterm rubric alignment**: [MIDTERM_RUBRIC_ALIGNMENT.md](/C:/Users/ktmni/.gemini/antigravity/scratch/ulsan-campus-plus/docs/MIDTERM_RUBRIC_ALIGNMENT.md)
+**Live demo link**: [https://ulsan-campus-plus.vercel.app](https://ulsan-campus-plus.vercel.app)
 
 | Name | Role Rotation (First Week) |
 | --- | --- |

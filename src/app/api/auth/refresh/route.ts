@@ -27,12 +27,12 @@ export async function POST() {
     await connectDB();
     const user = await User.findById(decoded.userId);
 
-    // Ensure session hasn't been revoked
+    // Ensure the saved session still matches the refresh token cookie.
     if (!user || user.refreshToken !== refreshToken) {
       return NextResponse.json({ error: 'Session invalidated' }, { status: 401 });
     }
 
-    // Token Rotation Mechanics
+    // Rotate tokens on refresh.
     const tokens = generateTokens(user._id.toString(), user.role);
 
     user.refreshToken = tokens.refreshToken;
@@ -48,6 +48,6 @@ export async function POST() {
 
     return NextResponse.json({ accessToken: tokens.accessToken });
   } catch {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Could not refresh your session. Please sign in again.' }, { status: 500 });
   }
 }

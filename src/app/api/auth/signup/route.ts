@@ -3,12 +3,13 @@ import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
 import Semester from '@/models/Semester';
 import { hashPassword } from '@/lib/auth';
+import { validateStrongPassword } from '@/lib/password-policy';
 import { z } from 'zod';
 
 const signupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(10),
   department: z.string().min(2),
   studentId: z.string().min(5),
   gender: z.enum(['male', 'female']),
@@ -26,6 +27,14 @@ export async function POST(req: Request) {
     }
     const data = parsed.data;
 
+    const passwordCheck = validateStrongPassword(data.password, {
+      email: data.email,
+      name: data.name,
+    });
+    if (!passwordCheck.isValid) {
+      return NextResponse.json({ error: passwordCheck.issues[0] }, { status: 400 });
+    }
+
     await connectDB();
 
     const semester = await Semester.findById(data.currentSemesterId);
@@ -35,7 +44,7 @@ export async function POST(req: Request) {
 
     const existingUser = await User.findOne({ $or: [{ email: data.email }, { studentId: data.studentId }] });
     if (existingUser) {
-      return NextResponse.json({ error: 'User with this email or Student ID already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'An account with this email or student ID already exists.' }, { status: 400 });
     }
 
     const hashedPassword = await hashPassword(data.password);
@@ -45,9 +54,9 @@ export async function POST(req: Request) {
       password: hashedPassword,
     });
 
-    return NextResponse.json({ message: 'User created successfully', userId: newUser._id }, { status: 201 });
+    return NextResponse.json({ message: 'Account created successfully.', userId: newUser._id }, { status: 201 });
   } catch (error: unknown) {
     console.error('Signup route error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Could not create your account right now. Please try again.' }, { status: 500 });
   }
 }

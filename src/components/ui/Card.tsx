@@ -11,7 +11,7 @@ interface CardProps extends HTMLMotionProps<"div"> {
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', hover = false, children, ...props }, ref) => {
-    const baseClass = "rounded-[20px] backdrop-blur-2xl";
+    const baseClass = "min-w-0 rounded-[20px] backdrop-blur-2xl";
 
     const variants = {
       default: "command-card p-6",

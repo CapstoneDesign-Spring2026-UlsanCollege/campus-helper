@@ -25,7 +25,16 @@ const ALLOWED_UPLOAD_TYPES = new Set([
 
 let configured = false;
 
+function getCloudinaryUrl() {
+  const value = process.env.CLOUDINARY_URL?.trim();
+  return value ? value : "";
+}
+
 function getMissingCloudinaryKeys() {
+  if (getCloudinaryUrl()) {
+    return [];
+  }
+
   return [
     "CLOUDINARY_CLOUD_NAME",
     "CLOUDINARY_API_KEY",
@@ -37,6 +46,10 @@ function hasCloudinaryConfig() {
   return getMissingCloudinaryKeys().length === 0;
 }
 
+function canUseLocalUploadFallback() {
+  return process.env.NODE_ENV !== "production";
+}
+
 export function ensureCloudinary() {
   const missing = getMissingCloudinaryKeys();
   if (missing.length > 0) {
@@ -44,11 +57,18 @@ export function ensureCloudinary() {
   }
 
   if (!configured) {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
+    const cloudinaryUrl = getCloudinaryUrl();
+    if (cloudinaryUrl) {
+      cloudinary.config({
+        cloudinary_url: cloudinaryUrl,
+      });
+    } else {
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
+    }
     configured = true;
   }
 }
@@ -135,6 +155,11 @@ export async function uploadFileToCloudinary(file: File, folder?: string): Promi
   validateUploadFile(file);
 
   if (!hasCloudinaryConfig()) {
+    if (!canUseLocalUploadFallback()) {
+      throw new Error(
+        "Image uploads are not configured for the deployed app yet. Please add Cloudinary environment variables or publish the listing without photos."
+      );
+    }
     return uploadFileLocally(file, folder);
   }
 
@@ -144,10 +169,11 @@ export async function uploadFileToCloudinary(file: File, folder?: string): Promi
   const targetFolder = sanitizeFolder(folder);
 
   const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const resourceType = file.type.startsWith("image/") ? "image" : "raw";
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: targetFolder,
-        resource_type: "auto",
+        resource_type: resourceType,
         use_filename: true,
         unique_filename: true,
       },

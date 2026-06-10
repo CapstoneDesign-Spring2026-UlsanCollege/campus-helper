@@ -44,16 +44,21 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       });
     }
 
-    const upstream = await fetch(note.fileUrl);
-    if (!upstream.ok) {
-      return NextResponse.json({ error: 'Unable to fetch note file for preview.' }, { status: 502 });
+    try {
+      const upstream = await fetch(note.fileUrl, { method: 'HEAD' });
+      if (upstream.ok) {
+        return NextResponse.redirect(note.fileUrl, {
+          headers: {
+            'Cache-Control': 'private, max-age=0, must-revalidate',
+          },
+        });
+      }
+    } catch {
+      // fall through to redirect below
     }
 
-    const arrayBuffer = await upstream.arrayBuffer();
-    return new NextResponse(arrayBuffer, {
+    return NextResponse.redirect(note.fileUrl, {
       headers: {
-        'Content-Type': upstream.headers.get('content-type') || contentType,
-        'Content-Disposition': 'inline',
         'Cache-Control': 'private, max-age=0, must-revalidate',
       },
     });

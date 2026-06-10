@@ -4,11 +4,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Mail, Lock, User, Hash, GraduationCap, ArrowLeft, Sparkles, Layers3, CalendarDays } from 'lucide-react';
+import { Mail, Lock, User, Hash, GraduationCap, ArrowLeft, Sparkles, Layers3, CalendarDays, ChevronDown, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
+import { PASSWORD_REQUIREMENTS, validateStrongPassword } from '@/lib/password-policy';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -24,7 +25,13 @@ export default function SignupPage() {
   const [semesters, setSemesters] = useState<Array<{ _id: string; name: string; status: string; year: number; term: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSemesters, setIsLoadingSemesters] = useState(true);
+  const [isSemesterMenuOpen, setIsSemesterMenuOpen] = useState(false);
   const router = useRouter();
+
+  const passwordFeedback = useMemo(
+    () => validateStrongPassword(formData.password, { email: formData.email, name: formData.name }),
+    [formData.password, formData.email, formData.name]
+  );
 
   useEffect(() => {
     const loadSemesters = async () => {
@@ -49,6 +56,14 @@ export default function SignupPage() {
     void loadSemesters();
   }, []);
 
+  useEffect(() => {
+    if (!isSemesterMenuOpen) return;
+
+    const closeMenu = () => setIsSemesterMenuOpen(false);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, [isSemesterMenuOpen]);
+
   const semesterSummary = useMemo(() => {
     const selected = semesters.find((semester) => semester._id === formData.currentSemesterId);
     return selected ? `${selected.name} • ${selected.status}` : 'Select your current semester';
@@ -56,6 +71,10 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!passwordFeedback.isValid) {
+      toast.error(passwordFeedback.issues[0]);
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -214,22 +233,63 @@ export default function SignupPage() {
                 <label className="text-xs text-gray-400 mb-2 block uppercase tracking-wider font-bold">
                   Current Semester
                 </label>
-                <div className="relative">
-                  <Layers3 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <select
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:border-brand-accent focus:shadow-[0_0_20px_rgba(0,245,255,0.2)] transition-all duration-300 min-h-[48px] hover:border-white/20"
-                    value={formData.currentSemesterId}
-                    onChange={e => setFormData({ ...formData, currentSemesterId: e.target.value })}
+                <div className="relative z-20">
+                  <Layers3 size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <button
+                    type="button"
                     disabled={isLoadingSemesters}
-                    required
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!isLoadingSemesters) {
+                        setIsSemesterMenuOpen((current) => !current);
+                      }
+                    }}
+                    className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 pl-11 pr-4 py-3 text-left text-white outline-none transition-all duration-300 min-h-[48px] hover:border-white/20 focus:border-brand-accent focus:shadow-[0_0_20px_rgba(0,245,255,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <option value="">Select semester</option>
-                    {semesters.map((semester) => (
-                      <option key={semester._id} value={semester._id}>
-                        {semester.name}
-                      </option>
-                    ))}
-                  </select>
+                    <span className="truncate pr-3">
+                      {semesters.find((semester) => semester._id === formData.currentSemesterId)?.name || 'Select semester'}
+                    </span>
+                    <ChevronDown
+                      size={18}
+                      className={`shrink-0 text-white transition-transform ${isSemesterMenuOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {isSemesterMenuOpen && (
+                    <div
+                      className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-2xl border border-white/10 bg-[#060b15] shadow-2xl shadow-black/50"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="max-h-72 overflow-y-auto p-2">
+                        {semesters.map((semester) => {
+                          const isSelected = semester._id === formData.currentSemesterId;
+                          return (
+                            <button
+                              key={semester._id}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, currentSemesterId: semester._id });
+                                setIsSemesterMenuOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition ${
+                                isSelected
+                                  ? 'bg-brand-accent/15 text-white'
+                                  : 'text-slate-200 hover:bg-white/5'
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">{semester.name}</p>
+                                <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                  {semester.status}
+                                </p>
+                              </div>
+                              {isSelected && <Check size={16} className="ml-3 shrink-0 text-brand-accent" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">
                   {semesterSummary}
@@ -255,12 +315,39 @@ export default function SignupPage() {
                 label="Password"
                 icon={Lock}
                 type="password"
-                placeholder="Min 6 characters"
+                showPasswordToggle
+                placeholder="Use a strong password"
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
                 required
-                minLength={6}
+                minLength={10}
               />
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-brand-accent">Password requirements</p>
+                <div className="mt-3 grid gap-2">
+                  {PASSWORD_REQUIREMENTS.map((requirement) => {
+                    const satisfied = !passwordFeedback.issues.some((issue) => {
+                      if (requirement === 'At least 10 characters') return issue.includes('10 characters');
+                      if (requirement === 'At least one uppercase letter') return issue.includes('uppercase');
+                      if (requirement === 'At least one lowercase letter') return issue.includes('lowercase');
+                      if (requirement === 'At least one number') return issue.includes('number');
+                      if (requirement === 'At least one special character') return issue.includes('special character');
+                      if (requirement === 'No spaces') return issue.includes('spaces');
+                      return false;
+                    });
+
+                    return (
+                      <div key={requirement} className="flex items-center gap-2 text-sm">
+                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${satisfied ? 'bg-emerald-400' : 'bg-white/15'}`} />
+                        <span className={satisfied ? 'text-emerald-200' : 'text-gray-400'}>{requirement}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {formData.password && passwordFeedback.issues.length > 0 && (
+                  <p className="mt-3 text-sm text-amber-200">{passwordFeedback.issues[0]}</p>
+                )}
+              </div>
             </div>
 
             {/* Submit Button */}

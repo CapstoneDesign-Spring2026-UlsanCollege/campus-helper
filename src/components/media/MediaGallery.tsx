@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ImageIcon, LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -25,15 +25,11 @@ export function MediaGallery({
     [images]
   );
   const [activeIndex, setActiveIndex] = useState(0);
-  const [failedImages, setFailedImages] = useState<number[]>([]);
+  const [failedImages, setFailedImages] = useState<string[]>([]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-    setFailedImages([]);
-  }, [validImages]);
-
-  const activeImage = validImages[activeIndex];
-  const showFallback = !activeImage || failedImages.includes(activeIndex);
+  const safeActiveIndex = Math.min(activeIndex, Math.max(validImages.length - 1, 0));
+  const activeImage = validImages[safeActiveIndex];
+  const showFallback = !activeImage || failedImages.includes(activeImage);
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -48,7 +44,8 @@ export function MediaGallery({
             alt={alt}
             className="h-full w-full object-cover"
             onError={() => {
-              setFailedImages((current) => (current.includes(activeIndex) ? current : [...current, activeIndex]));
+              if (!activeImage) return;
+              setFailedImages((current) => (current.includes(activeImage) ? current : [...current, activeImage]));
             }}
           />
         ) : (
@@ -65,7 +62,7 @@ export function MediaGallery({
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         {validImages.length > 1 && (
           <div className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-white">
-            {activeIndex + 1} / {validImages.length}
+            {safeActiveIndex + 1} / {validImages.length}
           </div>
         )}
       </div>
@@ -79,7 +76,7 @@ export function MediaGallery({
               onClick={() => setActiveIndex(index)}
               className={cn(
                 "relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border transition-all",
-                index === activeIndex
+                index === safeActiveIndex
                   ? "border-brand-indigo shadow-[0_0_0_1px_rgba(45,212,191,0.55)]"
                   : "border-white/10 opacity-70 hover:opacity-100"
               )}

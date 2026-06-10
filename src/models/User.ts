@@ -17,6 +17,7 @@ export interface IUser extends Document {
   profilePicture?: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  savedNotes?: mongoose.Types.ObjectId[];
 }
 
 const UserSchema: Schema = new Schema({
@@ -36,6 +37,7 @@ const UserSchema: Schema = new Schema({
   profilePicture: { type: String, default: '' },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
+  savedNotes: [{ type: Schema.Types.ObjectId, ref: 'Note' }],
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

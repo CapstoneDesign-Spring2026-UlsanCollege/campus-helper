@@ -34,3 +34,11 @@ export async function getSessionUserId(req: Request) {
     return null;
   }
 }
+
+export async function getOptionalSessionUserId(req: Request) {
+  try {
+    return await getSessionUserId(req);
+  } catch {
+    return null;
+  }
+}

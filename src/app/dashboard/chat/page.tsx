@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { MessageCircle, Send } from 'lucide-react';
+import { Clock3, MessageCircle, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { CommandHero } from '@/components/layout/CommandHero';
 import { fetchWithAuth, readApiError } from '@/lib/client-api';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 type PeerUser = {
@@ -17,6 +18,8 @@ type PeerUser = {
   profilePicture?: string;
   source?: 'friend' | 'message' | 'listing';
   lastMessageAt?: string;
+  lastMessagePreview?: string;
+  unreadCount?: number;
 };
 
 type ChatEntryContext = 'market' | 'lost-found' | 'notes' | 'network-search' | 'network-friend';
@@ -56,7 +59,23 @@ function getContextLabel(context: ChatEntryContext | null) {
   }
 }
 
-export default function ChatPage() {
+function formatRelativeTime(value?: string) {
+  if (!value) return '';
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return '';
+
+  const diffMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+  if (diffMinutes < 1) return 'Just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return new Date(value).toLocaleDateString();
+}
+
+function ChatPageContent() {
+  const searchParams = useSearchParams();
   const [contacts, setContacts] = useState<PeerUser[]>([]);
   const [activeChat, setActiveChat] = useState<PeerUser | null>(null);
   const [activeContext, setActiveContext] = useState<ChatEntryContext | null>(null);
@@ -68,6 +87,7 @@ export default function ChatPage() {
   const handleSelectChat = useCallback((peer: PeerUser, context: ChatEntryContext | null = null) => {
     setActiveChat(peer);
     setActiveContext(context);
+    setContent('');
   }, []);
 
   const fetchContacts = useCallback(async () => {
@@ -87,7 +107,14 @@ export default function ChatPage() {
   const fetchMessages = useCallback(async (targetId: string) => {
     try {
       const res = await fetchWithAuth(`/api/chat?targetId=${targetId}`);
-      if(res.ok) setMessages(await res.json());
+      if(res.ok) {
+        setMessages(await res.json());
+        setContacts((current) => current.map((contact) => (
+          contact._id === targetId
+            ? { ...contact, unreadCount: 0 }
+            : contact
+        )));
+      }
     } catch {
       // ignore
     }
@@ -98,12 +125,10 @@ export default function ChatPage() {
   }, [fetchContacts]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const params = new URLSearchParams(window.location.search);
-    const userId = params.get('userId');
+    const userId = searchParams.get('userId');
     if (!userId || userId === myId) return;
-    const context = params.get('context');
+    const context = searchParams.get('context');
+    const draft = searchParams.get('draft');
     const normalizedContext = (
       context === 'market' ||
       context === 'lost-found' ||
@@ -117,14 +142,17 @@ export default function ChatPage() {
 
       return {
         _id: userId,
-        name: params.get('name') || 'Campus user',
-        department: params.get('department') || undefined,
-        profilePicture: params.get('profilePicture') || undefined,
+        name: searchParams.get('name') || 'Campus user',
+        department: searchParams.get('department') || undefined,
+        profilePicture: searchParams.get('profilePicture') || undefined,
         source: 'listing',
       };
     });
     setActiveContext(normalizedContext);
-  }, [myId]);
+    if (draft) {
+      setContent(draft);
+    }
+  }, [myId, searchParams]);
 
   useEffect(() => {
     if (!activeChat) return;
@@ -177,7 +205,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="responsive-page space-y-5">
       <CommandHero
         eyebrow="Conversation Relay"
         title="Chat"
@@ -188,7 +216,7 @@ export default function ChatPage() {
           { label: 'Open thread', value: activeChat?.name || 'None selected', tone: 'default' },
         ]}
       />
-      <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-4 lg:h-[calc(100vh-140px)] lg:flex-row lg:gap-6">
+      <div className="flex min-h-[calc(100dvh-7rem)] min-w-0 flex-col gap-4 lg:h-[calc(100vh-140px)] lg:flex-row lg:gap-6">
       <Card className="flex shrink-0 flex-col border-white/5 bg-black/40 p-3 backdrop-blur-xl lg:w-80 lg:p-4">
          <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-gray-400 lg:mb-6 lg:text-sm"><MessageCircle size={18} className="text-brand-purple" /> Messages</h2>
          <div className="flex gap-2 overflow-x-auto pb-1 lg:block lg:flex-1 lg:space-y-2 lg:overflow-y-auto lg:pr-2">
@@ -198,15 +226,35 @@ export default function ChatPage() {
                  <div 
                    key={peer._id} 
                    onClick={() => handleSelectChat(peer, null)}
-                   className={`min-w-[220px] cursor-pointer rounded-xl border p-3 transition-all lg:min-w-0 ${isActive ? 'border-brand-purple/50 bg-brand-purple/20' : 'border-transparent hover:bg-white/5'}`}
+                   className={`min-w-[220px] cursor-pointer rounded-xl border p-3 transition-all sm:min-w-[260px] lg:min-w-0 ${isActive ? 'border-brand-purple/50 bg-brand-purple/20' : 'border-transparent hover:bg-white/5'}`}
                  >
                    <div className="flex items-center gap-3">
                    <Avatar src={peer.profilePicture} name={peer.name} className={`h-10 w-10 text-sm ${isActive ? 'shadow-brand-indigo/50' : ''}`} />
-                   <div className="min-w-0 truncate">
-                     <p className={`font-bold text-sm leading-tight truncate ${isActive ? 'text-white' : 'text-gray-300'}`}>{peer.name}</p>
+                  <div className="min-w-0 truncate">
+                     <div className="flex items-center gap-2">
+                       <p className={`font-bold text-sm leading-tight truncate ${isActive ? 'text-white' : 'text-gray-300'}`}>{peer.name}</p>
+                       {(peer.unreadCount || 0) > 0 && (
+                         <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-cyan-300 px-1.5 py-0.5 text-[10px] font-bold text-black">
+                           {peer.unreadCount! > 9 ? '9+' : peer.unreadCount}
+                         </span>
+                       )}
+                     </div>
                      <p className="text-[10px] text-gray-500 uppercase tracking-widest truncate">
                        {peer.department || (peer.source === 'listing' ? 'Direct listing chat' : 'Campus contact')}
                      </p>
+                     {peer.lastMessagePreview ? (
+                       <p className="mt-1 truncate text-xs text-slate-400">{peer.lastMessagePreview}</p>
+                     ) : (
+                       <p className="mt-1 truncate text-xs text-slate-500">
+                         {peer.source === 'listing' ? 'New listing conversation ready.' : 'Open this thread to start talking.'}
+                       </p>
+                     )}
+                     {peer.lastMessageAt && (
+                       <p className="mt-1 flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                         <Clock3 size={10} />
+                         {formatRelativeTime(peer.lastMessageAt)}
+                       </p>
+                     )}
                    </div>
                    </div>
                  </div>
@@ -215,7 +263,7 @@ export default function ChatPage() {
          </div>
       </Card>
 
-      <Card className="relative flex min-h-[65dvh] flex-1 flex-col overflow-hidden border-white/5 bg-black/20 p-0 backdrop-blur-2xl lg:min-h-0">
+      <Card className="relative flex min-h-[65dvh] min-w-0 flex-1 flex-col overflow-hidden border-white/5 bg-black/20 p-0 backdrop-blur-2xl lg:min-h-0">
          {activeChat ? (
             <>
               <div className="z-10 shrink-0 border-b border-white/5 bg-white/5 px-4 py-4 sm:px-5 lg:px-6">
@@ -224,14 +272,19 @@ export default function ChatPage() {
                     <div className="min-w-0">
                        <h3 className="truncate text-lg font-bold leading-tight text-white lg:text-xl">{activeChat.name}</h3>
                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                         <span className="text-[10px] text-brand-accent tracking-widest uppercase flex items-center gap-1">
+                       <span className="text-[10px] text-brand-accent tracking-widest uppercase flex items-center gap-1">
                            <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse block"></span> Secure Chat Active
-                         </span>
-                         {activeContext && (
-                           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
-                             {getContextLabel(activeContext)}
-                           </span>
-                         )}
+                        </span>
+                        {activeContext && (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                            {getContextLabel(activeContext)}
+                          </span>
+                        )}
+                        {activeChat.lastMessageAt && (
+                          <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                            Last active {formatRelativeTime(activeChat.lastMessageAt)}
+                          </span>
+                        )}
                        </div>
                     </div>
                  </div>
@@ -246,8 +299,8 @@ export default function ChatPage() {
                             initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} 
                             key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                           >
-                             <div className={`max-w-[88%] rounded-2xl p-3.5 px-4 sm:max-w-[75%] sm:px-5 ${isMe ? 'bg-gradient-to-r from-brand-indigo to-brand-purple text-white rounded-br-sm shadow-xl' : 'bg-black/60 text-gray-200 rounded-bl-sm border border-white/10 backdrop-blur-md shadow-lg'}`}>
-                               <p className="text-sm leading-relaxed sm:text-[15px]">{msg.content}</p>
+                             <div className={`max-w-[88%] min-w-0 rounded-2xl p-3.5 px-4 sm:max-w-[75%] sm:px-5 ${isMe ? 'bg-gradient-to-r from-brand-indigo to-brand-purple text-white rounded-br-sm shadow-xl' : 'bg-black/60 text-gray-200 rounded-bl-sm border border-white/10 backdrop-blur-md shadow-lg'}`}>
+                               <p className="break-words text-sm leading-relaxed sm:text-[15px]">{msg.content}</p>
                                <span className="text-[9px] opacity-70 mt-2 flex items-center gap-1 uppercase tracking-widest font-mono">
                                   {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                   {isMe && <span className="ml-2 font-bold text-brand-accent">{msg.read ? "Read" : "Sent"}</span>}
@@ -268,7 +321,7 @@ export default function ChatPage() {
               <div className="z-10 shrink-0 border-t border-white/5 bg-black/60 p-3 sm:p-4">
                  <form onSubmit={sendMessage} className="flex items-end gap-2 sm:gap-3">
                     <input 
-                      className="min-h-[52px] flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors placeholder-gray-600 focus:border-brand-purple sm:px-5"
+                      className="focus-ring min-h-[52px] min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition-colors placeholder-gray-600 focus:border-brand-purple sm:px-5 md:text-sm"
                       placeholder="Type a message..."
                       value={content}
                       onChange={e => setContent(e.target.value)}
@@ -289,5 +342,13 @@ export default function ChatPage() {
       </Card>
       </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-sm uppercase tracking-[0.24em] text-gray-500">Loading chat relay...</div>}>
+      <ChatPageContent />
+    </Suspense>
   );
 }

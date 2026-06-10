@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
 import { CommandHero } from '@/components/layout/CommandHero';
-import { fetchWithAuth, readApiError, uploadAsset } from '@/lib/client-api';
+import { fetchWithAuth, readApiError, refreshAccessToken, uploadAsset } from '@/lib/client-api';
 
 function getStoredUserId() {
   try {
@@ -30,13 +30,14 @@ function getMessageText(message: UIMessage) {
 
 function getFriendlyChatError(error: Error) {
   const message = error.message || '';
+  const lower = message.toLowerCase();
 
-  if (message.includes('insufficient_quota') || message.toLowerCase().includes('quota')) {
-    return 'OpenAI quota is exhausted for this API key. Add billing/credits in OpenAI or switch to a key from a project with available quota.';
+  if (message.includes('insufficient_quota') || lower.includes('quota')) {
+    return 'The AI provider is connected, but the configured key has no available quota. Add billing/credits or switch to a key with available usage.';
   }
 
-  if (message.toLowerCase().includes('api key')) {
-    return 'The OpenAI API key is missing or invalid. Check .env.local and restart the dev server.';
+  if (lower.includes('api key') || lower.includes('authentication') || lower.includes('unauthorized') || lower.includes('token expired')) {
+    return 'Your AI session needs a fresh sign-in. Please refresh once or sign in again if this keeps happening.';
   }
 
   return message || 'The assistant could not respond.';
@@ -131,6 +132,7 @@ export default function AIPage() {
 
     clearError();
     setInput('');
+    await refreshAccessToken();
     await sendMessage({ text });
   };
 
@@ -168,8 +170,8 @@ export default function AIPage() {
           { label: 'Assistant status', value: isBusy ? 'Responding' : 'Ready', tone: isBusy ? 'accent' : 'default' },
         ]}
       />
-      <div className="flex h-[calc(100vh-112px)] flex-col gap-4 md:h-[calc(100vh-132px)]">
-      <header className="grid gap-4 overflow-hidden rounded-lg border border-white/10 bg-black/55 p-4 shadow-2xl shadow-black/40 md:grid-cols-[1fr_auto] md:p-5">
+      <div className="flex min-h-[calc(100dvh-6rem)] flex-col gap-4 md:h-[calc(100vh-132px)]">
+      <header className="grid gap-4 overflow-hidden rounded-2xl border border-white/10 bg-black/55 p-4 shadow-2xl shadow-black/40 md:grid-cols-[1fr_auto] md:p-5">
         <div className="relative">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-100">
             <Sparkles size={14} />
@@ -184,14 +186,14 @@ export default function AIPage() {
           type="button"
           variant="ghost"
           onClick={clearChat}
-          className="h-11 self-start rounded-lg border border-white/10 bg-white/[0.03] px-4 text-slate-300 hover:border-red-300/30 hover:bg-red-500/10 hover:text-red-200"
+          className="h-11 self-start rounded-xl border border-white/10 bg-white/[0.03] px-4 text-slate-300 hover:border-red-300/30 hover:bg-red-500/10 hover:text-red-200"
         >
           <Trash size={16} className="mr-2" />
           Clear
         </Button>
       </header>
 
-      <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#07100f]/80 shadow-2xl shadow-black/40">
+      <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#07100f]/80 shadow-2xl shadow-black/40">
         <div className="absolute inset-0 bg-[url('/campus_bg.png')] bg-cover bg-center opacity-10" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,12,11,0.84),rgba(3,7,7,0.96))]" />
 
@@ -238,9 +240,9 @@ export default function AIPage() {
                       >
                         {isUser ? <User size={17} /> : <Bot size={17} />}
                       </div>
-                      <div className={`max-w-[86%] ${isUser ? 'items-end' : 'items-start'}`}>
+                      <div className={`max-w-[86%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
                         <div
-                          className={`rounded-lg border px-4 py-3 text-sm leading-6 shadow-xl md:text-[15px] ${
+                          className={`rounded-2xl border px-4 py-3 text-sm leading-6 shadow-xl md:text-[15px] ${
                             isUser
                               ? 'border-cyan-200/20 bg-cyan-300/15 text-cyan-50'
                               : 'border-white/10 bg-black/45 text-slate-100'
@@ -287,14 +289,14 @@ export default function AIPage() {
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading || isBusy}
-              className="h-12 w-12 shrink-0 rounded-lg border border-white/10 bg-white/[0.03] p-0 text-slate-200 hover:border-emerald-200/30 hover:bg-emerald-300/10"
+              className="h-12 w-12 shrink-0 rounded-xl border border-white/10 bg-white/[0.03] p-0 text-slate-200 hover:border-emerald-200/30 hover:bg-emerald-300/10"
               title="Attach file"
             >
               {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Paperclip size={20} />}
             </Button>
 
             <textarea
-              className="min-h-12 flex-1 resize-none rounded-lg border border-white/10 bg-black/45 px-4 py-3 text-sm leading-6 text-white outline-none transition focus:border-emerald-200/40 focus:bg-black/65 placeholder:text-slate-500"
+              className="focus-ring min-h-12 min-w-0 flex-1 resize-none rounded-xl border border-white/10 bg-black/45 px-4 py-3 text-base leading-6 text-white outline-none transition focus:border-emerald-200/40 focus:bg-black/65 placeholder:text-slate-500 md:text-sm"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
@@ -311,7 +313,7 @@ export default function AIPage() {
             <Button
               type="submit"
               disabled={!input.trim() || isUploading || isBusy}
-              className="h-12 shrink-0 rounded-lg bg-emerald-300 px-4 font-semibold text-black hover:bg-cyan-200 md:px-5"
+              className="h-12 shrink-0 rounded-xl bg-emerald-300 px-4 font-semibold text-black hover:bg-cyan-200 md:px-5"
             >
               {isBusy ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className="md:mr-2" />}
               <span className="hidden md:inline">Send</span>

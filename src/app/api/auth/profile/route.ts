@@ -1,29 +1,12 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
-import jwt from 'jsonwebtoken';
-import { getJwtAccessSecret } from '@/lib/env';
-
-function getUserId(req: Request) {
-  const token = req.headers.get('authorization')?.split(' ')[1];
-  if (!token) return null;
-
-  try {
-    const payload = jwt.verify(
-      token,
-      getJwtAccessSecret()
-    ) as jwt.JwtPayload & { userId?: string; id?: string };
-
-    return payload.userId || payload.id || null;
-  } catch {
-    return null;
-  }
-}
+import { getSessionUserId } from '@/lib/server-auth';
 
 export async function PUT(req: Request) {
   try {
-    const userId = getUserId(req);
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = await getSessionUserId(req);
+    if (!userId) return NextResponse.json({ error: 'Your session expired. Please sign in again.' }, { status: 401 });
 
     const { profilePicture, currentSemesterId, admissionYear } = await req.json();
     const updateFields: Record<string, unknown> = {};
@@ -41,7 +24,7 @@ export async function PUT(req: Request) {
     }
 
     if (Object.keys(updateFields).length === 0) {
-      return NextResponse.json({ error: 'No profile fields were provided' }, { status: 400 });
+      return NextResponse.json({ error: 'No profile fields were provided.' }, { status: 400 });
     }
 
     await connectDB();
@@ -51,7 +34,7 @@ export async function PUT(req: Request) {
        { new: true }
     ).select('-password');
 
-    if (!updatedUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!updatedUser) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     return NextResponse.json({
       message: 'Profile updated',
       user: {
@@ -65,7 +48,8 @@ export async function PUT(req: Request) {
         admissionYear: updatedUser.admissionYear,
       }
     });
-  } catch {
-    return NextResponse.json({ error: 'Server disruption' }, { status: 500 });
+  } catch (error) {
+    console.error('Profile update failed:', error);
+    return NextResponse.json({ error: 'We could not update your profile right now.' }, { status: 500 });
   }
 }

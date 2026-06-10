@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
+import { Eye, EyeOff, LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -8,11 +8,15 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   label?: string;
   variant?: 'default' | 'filled' | 'bordered';
+  showPasswordToggle?: boolean;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, icon: Icon, error, label, variant = 'default', ...props }, ref) => {
-    const baseClass = "w-full rounded-2xl text-white placeholder:text-slate-500 outline-none transition-all duration-200";
+  ({ className, icon: Icon, error, label, variant = 'default', showPasswordToggle = false, type, ...props }, ref) => {
+    const [showPassword, setShowPassword] = React.useState(false);
+    const canTogglePassword = showPasswordToggle && type === 'password';
+    const resolvedType = canTogglePassword ? (showPassword ? 'text' : 'password') : type;
+    const baseClass = "w-full min-w-0 rounded-2xl text-white placeholder:text-slate-500 outline-none transition-all duration-200";
 
     const variants = {
       default: "border border-white/10 bg-[rgba(255,255,255,0.03)] hover:border-white/16 focus:bg-white/[0.06]",
@@ -31,7 +35,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <div className="relative flex items-center w-full">
+        <div className="relative flex w-full min-w-0 items-center">
           {Icon && (
             <div className="absolute left-4 text-slate-500 flex-shrink-0 transition-colors group-focus-within:text-brand-indigo">
               <Icon size={18} />
@@ -39,18 +43,30 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            type={resolvedType}
             className={cn(
               baseClass,
               variants[variant],
               focusClass,
-              Icon ? "pl-11 pr-4" : "px-4",
-              "py-3.5",
+              Icon ? "pl-11" : "pl-4",
+              canTogglePassword ? "pr-12" : "pr-4",
+              "py-3.5 text-base md:text-sm",
               error && "border-red-500 focus:border-red-500",
               "min-h-[48px]",
               className
             )}
             {...props}
           />
+          {canTogglePassword && (
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute right-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/5 hover:text-white"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
         </div>
         {error && (
           <motion.p

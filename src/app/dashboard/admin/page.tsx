@@ -4,7 +4,7 @@ import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'rea
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { AlertCircle, CalendarDays, GraduationCap, Layers3, Loader2, Megaphone, RefreshCw, Shield, Trash2, Users } from 'lucide-react';
+import { AlertCircle, CalendarDays, GraduationCap, Layers3, Loader2, Megaphone, RefreshCw, Search, Shield, Trash2, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { fetchWithAuth, readApiError } from '@/lib/client-api';
@@ -12,7 +12,17 @@ import { fetchWithAuth, readApiError } from '@/lib/client-api';
 type AdminTab = 'announcements' | 'users' | 'semesters' | 'calendar' | 'templates';
 type StoredUser = { id?: string; name?: string; role?: string };
 type UserRow = { _id: string; name: string; email: string; department: string; studentId: string; role: string };
-type Announcement = { _id: string; title: string; content: string; createdAt?: string };
+type Announcement = {
+  _id: string;
+  title: string;
+  content: string;
+  createdAt?: string;
+  priority?: 'normal' | 'important' | 'urgent';
+  pinned?: boolean;
+  publishAt?: string;
+  expiresAt?: string;
+  authorId?: { name?: string } | string;
+};
 type Semester = { _id: string; name: string; year: number; term: string; status: string; registrationStart?: string; registrationEnd?: string; classStart?: string; classEnd?: string };
 type AcademicEvent = { _id: string; semesterId: string; title: string; description?: string; category: string; startDate: string; endDate?: string };
 type TimetableTemplate = { _id: string; semesterId: string; department: string; day: string; time: string; subject: string; room?: string };
@@ -31,6 +41,55 @@ function getCurrentUser() {
   }
 }
 
+function normalizeText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function formatRelativeTime(value?: string) {
+  if (!value) return 'Recently';
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return 'Recently';
+  const diffMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+  if (diffMinutes < 1) return 'Just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return diffDays < 7 ? `${diffDays}d ago` : new Date(value).toLocaleDateString();
+}
+
+function formatExactDateTime(value?: string) {
+  if (!value) return 'Time unavailable';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Time unavailable';
+  return date.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getDayBucketLabel(value?: string) {
+  if (!value) return 'Earlier';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Earlier';
+
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
+
+  if (date >= startOfToday) return 'Today';
+  if (date >= startOfYesterday) return 'Yesterday';
+  if (date >= startOfWeek) return 'Earlier this week';
+  return 'Earlier';
+}
+
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('announcements');
   const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
@@ -44,7 +103,14 @@ export default function AdminDashboardPage() {
   const [academicEvents, setAcademicEvents] = useState<AcademicEvent[]>([]);
   const [templates, setTemplates] = useState<TimetableTemplate[]>([]);
 
-  const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    content: '',
+    priority: 'normal',
+    pinned: false,
+    publishAt: '',
+    expiresAt: '',
+  });
   const [semesterForm, setSemesterForm] = useState({
     name: '',
     year: 2026,
@@ -71,12 +137,26 @@ export default function AdminDashboardPage() {
     subject: '',
     room: '',
   });
+  const [userSearch, setUserSearch] = useState('');
+  const [announcementSearch, setAnnouncementSearch] = useState('');
+  const [announcementPriorityFilter, setAnnouncementPriorityFilter] = useState<'all' | 'normal' | 'important' | 'urgent'>('all');
+  const [announcementViewFilter, setAnnouncementViewFilter] = useState<'all' | 'pinned' | 'scheduled' | 'expiring'>('all');
+  const [semesterStatusFilter, setSemesterStatusFilter] = useState<'all' | 'active' | 'upcoming' | 'archived'>('all');
+  const [eventQuery, setEventQuery] = useState('');
+  const [templateQuery, setTemplateQuery] = useState('');
 
   const isAdmin = currentUser?.role === 'admin';
 
   const validateAnnouncementForm = () => {
     if (!announcementForm.title.trim()) return 'Notice title is required.';
     if (!announcementForm.content.trim()) return 'Notice body is required.';
+    if (announcementForm.publishAt && announcementForm.expiresAt) {
+      const publishAt = new Date(announcementForm.publishAt);
+      const expiresAt = new Date(announcementForm.expiresAt);
+      if (!Number.isNaN(publishAt.getTime()) && !Number.isNaN(expiresAt.getTime()) && publishAt.getTime() >= expiresAt.getTime()) {
+        return 'Expiry must be later than the publish time.';
+      }
+    }
     return '';
   };
 
@@ -108,7 +188,7 @@ export default function AdminDashboardPage() {
     try {
       const [usersRes, announcementsRes, semestersRes, academicEventsRes, templateRes] = await Promise.all([
         fetchWithAuth('/api/admin/users'),
-        fetch('/api/admin/announcements'),
+        fetchWithAuth('/api/admin/announcements?scope=admin'),
         fetchWithAuth('/api/admin/semesters'),
         fetchWithAuth('/api/admin/academic-events'),
         fetchWithAuth('/api/admin/timetable-templates'),
@@ -168,9 +248,103 @@ export default function AdminDashboardPage() {
       semesters: semesters.length,
       events: academicEvents.length,
       templates: templates.length,
+      activeSemesters: semesters.filter((semester) => semester.status === 'active').length,
+      archivedSemesters: semesters.filter((semester) => semester.status === 'archived').length,
     }),
-    [academicEvents.length, semesters.length, templates.length, users.length]
+    [academicEvents.length, semesters, templates.length, users.length]
   );
+
+  const filteredUsers = useMemo(() => {
+    const query = normalizeText(userSearch);
+    if (!query) return users;
+    return users.filter((user) =>
+      [user.name, user.email, user.department, user.studentId, user.role].some((value) =>
+        normalizeText(String(value || '')).includes(query)
+      )
+    );
+  }, [userSearch, users]);
+
+  const filteredAnnouncements = useMemo(() => {
+    const query = normalizeText(announcementSearch);
+    const now = Date.now();
+    return announcements.filter((post) => {
+      const matchesQuery = !query || normalizeText(`${post.title} ${post.content}`).includes(query);
+      const matchesPriority = announcementPriorityFilter === 'all' || (post.priority || 'normal') === announcementPriorityFilter;
+      const publishTime = post.publishAt ? new Date(post.publishAt).getTime() : 0;
+      const expireTime = post.expiresAt ? new Date(post.expiresAt).getTime() : Number.POSITIVE_INFINITY;
+      const matchesView =
+        announcementViewFilter === 'all' ? true :
+        announcementViewFilter === 'pinned' ? Boolean(post.pinned) :
+        announcementViewFilter === 'scheduled' ? publishTime > now :
+        expireTime > now && expireTime < now + 1000 * 60 * 60 * 24 * 3;
+
+      return matchesQuery && matchesPriority && matchesView;
+    });
+  }, [announcementPriorityFilter, announcementSearch, announcementViewFilter, announcements]);
+
+  const groupedAnnouncements = useMemo(() => {
+    const groups = new Map<string, Announcement[]>();
+    filteredAnnouncements.forEach((post) => {
+      const label = post.publishAt && new Date(post.publishAt).getTime() > Date.now()
+        ? 'Scheduled'
+        : getDayBucketLabel(post.publishAt || post.createdAt);
+      const existing = groups.get(label) || [];
+      existing.push(post);
+      groups.set(label, existing);
+    });
+
+    return ['Scheduled', 'Today', 'Yesterday', 'Earlier this week', 'Earlier']
+      .map((label) => ({ label, posts: groups.get(label) || [] }))
+      .filter((group) => group.posts.length > 0);
+  }, [filteredAnnouncements]);
+
+  const announcementStats = useMemo(() => {
+    const now = Date.now();
+    return {
+      urgent: announcements.filter((post) => post.priority === 'urgent').length,
+      pinned: announcements.filter((post) => post.pinned).length,
+      scheduled: announcements.filter((post) => post.publishAt && new Date(post.publishAt).getTime() > now).length,
+      expiringSoon: announcements.filter((post) => {
+        if (!post.expiresAt) return false;
+        const expireTime = new Date(post.expiresAt).getTime();
+        return expireTime > now && expireTime < now + 1000 * 60 * 60 * 24 * 3;
+      }).length,
+    };
+  }, [announcements]);
+
+  const announcementPreview = useMemo(() => {
+    return {
+      title: announcementForm.title.trim() || 'Your notice title will appear here',
+      content:
+        announcementForm.content.trim() ||
+        'Notice details, instructions, or key campus information will show here as you type.',
+      priority: announcementForm.priority as Announcement['priority'],
+      pinned: announcementForm.pinned,
+      publishAt: announcementForm.publishAt,
+      expiresAt: announcementForm.expiresAt,
+    };
+  }, [announcementForm]);
+
+  const filteredSemesters = useMemo(() => {
+    if (semesterStatusFilter === 'all') return semesters;
+    return semesters.filter((semester) => semester.status === semesterStatusFilter);
+  }, [semesterStatusFilter, semesters]);
+
+  const filteredAcademicEvents = useMemo(() => {
+    const query = normalizeText(eventQuery);
+    if (!query) return academicEvents;
+    return academicEvents.filter((event) =>
+      normalizeText(`${event.title} ${event.description || ''} ${event.category}`).includes(query)
+    );
+  }, [academicEvents, eventQuery]);
+
+  const filteredTemplates = useMemo(() => {
+    const query = normalizeText(templateQuery);
+    if (!query) return templates;
+    return templates.filter((template) =>
+      normalizeText(`${template.subject} ${template.department} ${template.day} ${template.room || ''}`).includes(query)
+    );
+  }, [templateQuery, templates]);
 
   const adminTabs = useMemo<AdminTabConfig[]>(
     () => [
@@ -256,7 +430,7 @@ export default function AdminDashboardPage() {
         {[
           { label: 'Users', value: stats.users },
           { label: 'Semesters', value: stats.semesters },
-          { label: 'Events', value: stats.events },
+          { label: 'Active Terms', value: stats.activeSemesters },
           { label: 'Templates', value: stats.templates },
         ].map((item) => (
           <Card key={item.label} className="border border-white/10 bg-black/45 p-4">
@@ -277,6 +451,19 @@ export default function AdminDashboardPage() {
           >
             <Icon size={16} />
             {label}
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              activeTab === key ? 'bg-black/10 text-black/70' : 'bg-white/10 text-slate-400'
+            }`}>
+              {key === 'announcements'
+                ? announcements.length
+                : key === 'users'
+                  ? users.length
+                  : key === 'semesters'
+                    ? semesters.length
+                    : key === 'calendar'
+                      ? academicEvents.length
+                      : templates.length}
+            </span>
           </button>
         ))}
       </div>
@@ -305,7 +492,7 @@ export default function AdminDashboardPage() {
                       const validationError = validateAnnouncementForm();
                       if (validationError) throw new Error(validationError);
                       await submitJson('/api/admin/announcements', announcementForm, 'Notice published.');
-                      setAnnouncementForm({ title: '', content: '' });
+                      setAnnouncementForm({ title: '', content: '', priority: 'normal', pinned: false, publishAt: '', expiresAt: '' });
                     } catch (err) {
                       toast.error(err instanceof Error ? err.message : 'Could not publish notice');
                     }
@@ -313,26 +500,235 @@ export default function AdminDashboardPage() {
                   className="space-y-4"
                 >
                   <Input label="Notice title" value={announcementForm.title} onChange={(event) => setAnnouncementForm({ ...announcementForm, title: event.target.value })} required />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">Priority</label>
+                      <select
+                        className="h-12 w-full rounded-lg border border-white/10 bg-black/45 px-4 text-white"
+                        value={announcementForm.priority}
+                        onChange={(event) => setAnnouncementForm({ ...announcementForm, priority: event.target.value })}
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="important">Important</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <Input
+                      label="Publish at (optional)"
+                      type="datetime-local"
+                      value={announcementForm.publishAt}
+                      onChange={(event) => setAnnouncementForm({ ...announcementForm, publishAt: event.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input
+                      label="Expires (optional)"
+                      type="date"
+                      value={announcementForm.expiresAt}
+                      onChange={(event) => setAnnouncementForm({ ...announcementForm, expiresAt: event.target.value })}
+                    />
+                  </div>
                   <div>
                     <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">Notice body</label>
                     <textarea className="min-h-40 w-full rounded-lg border border-white/10 bg-black/45 p-4 text-sm leading-6 text-white outline-none transition focus:border-emerald-200/40" value={announcementForm.content} onChange={(event) => setAnnouncementForm({ ...announcementForm, content: event.target.value })} required />
                   </div>
+                  <label className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={announcementForm.pinned}
+                      onChange={(event) => setAnnouncementForm({ ...announcementForm, pinned: event.target.checked })}
+                      className="h-4 w-4 rounded border-white/20 bg-black/40 text-emerald-300"
+                    />
+                    Pin this notice above others
+                  </label>
+                  <Card className="border border-white/10 bg-black/35 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Live preview</p>
+                        <p className="mt-1 text-xs text-slate-400">This is how the notice will feel inside the dashboard feed.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {announcementPreview.pinned ? (
+                          <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-cyan-100">
+                            Pinned
+                          </span>
+                        ) : null}
+                        <span className={`rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] ${
+                          announcementPreview.priority === 'urgent'
+                            ? 'border border-red-300/20 bg-red-400/10 text-red-100'
+                            : announcementPreview.priority === 'important'
+                              ? 'border border-amber-300/20 bg-amber-400/10 text-amber-100'
+                              : 'border border-white/10 bg-white/[0.03] text-slate-300'
+                        }`}>
+                          {announcementPreview.priority || 'normal'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                      <p className="font-semibold text-white">{announcementPreview.title}</p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{announcementPreview.content}</p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1">
+                          {announcementPreview.publishAt ? `Publishes ${formatExactDateTime(announcementPreview.publishAt)}` : 'Publishes immediately'}
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1">
+                          {announcementPreview.expiresAt ? `Expires ${formatExactDateTime(announcementPreview.expiresAt)}` : 'No expiry'}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
                   <Button type="submit" className="w-full bg-emerald-300 font-semibold text-black hover:bg-cyan-200">Publish notice</Button>
                 </form>
               </Card>
-              <div className="space-y-3">
-                {announcements.map((post) => (
-                  <Card key={post._id} className="border border-white/10 bg-black/45">
-                    <h3 className="text-lg font-semibold text-white">{post.title}</h3>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{post.content}</p>
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <Card className="border border-white/10 bg-black/35 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Published notices</p>
+                      <p className="mt-2 text-2xl font-semibold text-white">{announcements.length}</p>
+                    </Card>
+                    <Card className="border border-white/10 bg-black/35 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Visible in search</p>
+                      <p className="mt-2 text-2xl font-semibold text-white">{filteredAnnouncements.length}</p>
+                    </Card>
+                    <Card className="border border-white/10 bg-black/35 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Latest publish</p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {announcements[0]?.createdAt ? formatRelativeTime(announcements[0].createdAt) : 'No notices yet'}
+                      </p>
+                    </Card>
+                    <Card className="border border-white/10 bg-black/35 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Urgent / pinned</p>
+                      <p className="mt-2 text-sm font-semibold text-white">{announcementStats.urgent} urgent / {announcementStats.pinned} pinned</p>
+                    </Card>
+                    <Card className="border border-white/10 bg-black/35 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Scheduled / expiring</p>
+                      <p className="mt-2 text-sm font-semibold text-white">{announcementStats.scheduled} scheduled / {announcementStats.expiringSoon} expiring soon</p>
+                    </Card>
+                  </div>
+                  <Card className="border border-white/10 bg-black/35 p-4">
+                    <div className="grid gap-4 xl:grid-cols-[1fr_190px_190px]">
+                      <Input
+                        label="Search published notices"
+                        icon={Search}
+                        placeholder="Search by title or message..."
+                        value={announcementSearch}
+                        onChange={(event) => setAnnouncementSearch(event.target.value)}
+                      />
+                      <div>
+                        <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">Priority filter</label>
+                        <select
+                          className="h-12 w-full rounded-lg border border-white/10 bg-black/45 px-4 text-white"
+                          value={announcementPriorityFilter}
+                          onChange={(event) => setAnnouncementPriorityFilter(event.target.value as typeof announcementPriorityFilter)}
+                        >
+                          <option value="all">All priorities</option>
+                          <option value="urgent">Urgent</option>
+                          <option value="important">Important</option>
+                          <option value="normal">Normal</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">View filter</label>
+                        <select
+                          className="h-12 w-full rounded-lg border border-white/10 bg-black/45 px-4 text-white"
+                          value={announcementViewFilter}
+                          onChange={(event) => setAnnouncementViewFilter(event.target.value as typeof announcementViewFilter)}
+                        >
+                          <option value="all">All notices</option>
+                          <option value="pinned">Pinned only</option>
+                          <option value="scheduled">Scheduled only</option>
+                          <option value="expiring">Expiring soon</option>
+                        </select>
+                      </div>
+                    </div>
                   </Card>
-                ))}
-              </div>
-            </motion.section>
-          )}
+                  {groupedAnnouncements.length === 0 ? (
+                    <Card className="border border-dashed border-white/10 bg-black/30 p-8 text-center">
+                      <p className="text-sm text-slate-400">No notices match this search yet.</p>
+                    </Card>
+                  ) : (
+                    groupedAnnouncements.map((group) => (
+                      <div key={group.label} className="space-y-3">
+                        <div className="sticky top-0 z-10 rounded-lg border border-white/10 bg-[#0b111b]/95 px-4 py-3 backdrop-blur">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">{group.label}</p>
+                        </div>
+                        {group.posts.map((post) => (
+                          <Card key={post._id} className="border border-white/10 bg-black/45">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="text-lg font-semibold text-white">{post.title}</h3>
+                                  {post.pinned ? (
+                                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-cyan-100">
+                                      Pinned
+                                    </span>
+                                  ) : null}
+                                  <span className={`rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] ${
+                                    post.priority === 'urgent'
+                                      ? 'border border-red-300/20 bg-red-400/10 text-red-100'
+                                      : post.priority === 'important'
+                                        ? 'border border-amber-300/20 bg-amber-400/10 text-amber-100'
+                                        : 'border border-white/10 bg-white/[0.03] text-slate-300'
+                                  }`}>
+                                    {post.priority || 'normal'}
+                                  </span>
+                                </div>
+                                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{post.content}</p>
+                                <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1">
+                                    Author {typeof post.authorId === 'object' ? post.authorId?.name || 'Admin' : 'Admin'}
+                                  </span>
+                                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1">
+                                    {post.publishAt ? `Publishes ${formatExactDateTime(post.publishAt)}` : 'Live now'}
+                                  </span>
+                                  {post.expiresAt ? (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1">
+                                      Expires {new Date(post.expiresAt).toLocaleDateString()}
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1">
+                                      No expiry
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 flex-col gap-3 sm:min-w-[220px]">
+                                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Published</p>
+                                  <p className="mt-2 text-sm font-semibold text-white">{formatExactDateTime(post.createdAt)}</p>
+                                  <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-brand-accent">{formatRelativeTime(post.createdAt)}</p>
+                                </div>
+                                <button
+                                  onClick={() => handleDeleteSimple(`/api/admin/announcements?id=${post._id}`, 'Notice deleted.')}
+                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-300/15 bg-red-500/8 px-4 text-xs font-semibold uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/15"
+                                >
+                                  <Trash2 size={14} />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.section>
+            )}
 
           {activeTab === 'users' && (
             <motion.section key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className="mb-4">
+                <Card className="border border-white/10 bg-black/35 p-4">
+                  <Input
+                    label="Search people"
+                    icon={Search}
+                    placeholder="Search by name, email, department, ID, or role..."
+                    value={userSearch}
+                    onChange={(event) => setUserSearch(event.target.value)}
+                  />
+                </Card>
+              </div>
               <Card className="overflow-hidden border border-white/10 bg-black/45 p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[760px] text-left">
@@ -346,7 +742,7 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
-                      {users.map((user) => (
+                      {filteredUsers.map((user) => (
                         <tr key={user._id} className="transition hover:bg-white/[0.03]">
                           <td className="px-5 py-4">
                             <p className="font-semibold text-white">{user.name}</p>
@@ -428,7 +824,26 @@ export default function AdminDashboardPage() {
                 </form>
               </Card>
               <div className="space-y-3">
-                {semesters.map((semester) => (
+                <Card className="border border-white/10 bg-black/35 p-4">
+                  <div>
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">Filter semester state</label>
+                    <div className="flex gap-2 rounded-lg border border-white/10 bg-black/40 p-1">
+                      {(['all', 'active', 'upcoming', 'archived'] as const).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setSemesterStatusFilter(value)}
+                          className={`flex-1 rounded-md px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
+                            semesterStatusFilter === value ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'
+                          }`}
+                        >
+                          {value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+                {filteredSemesters.map((semester) => (
                   <Card key={semester._id} className="border border-white/10 bg-black/45">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -498,7 +913,16 @@ export default function AdminDashboardPage() {
                 </form>
               </Card>
               <div className="space-y-3">
-                {academicEvents.map((event) => {
+                <Card className="border border-white/10 bg-black/35 p-4">
+                  <Input
+                    label="Search academic events"
+                    icon={Search}
+                    placeholder="Search titles, categories, or details..."
+                    value={eventQuery}
+                    onChange={(event) => setEventQuery(event.target.value)}
+                  />
+                </Card>
+                {filteredAcademicEvents.map((event) => {
                   const semesterName = semesters.find((semester) => semester._id === event.semesterId)?.name || 'Unknown semester';
                   return (
                     <Card key={event._id} className="border border-white/10 bg-black/45">
@@ -571,7 +995,16 @@ export default function AdminDashboardPage() {
                 </form>
               </Card>
               <div className="space-y-3">
-                {templates.map((template) => (
+                <Card className="border border-white/10 bg-black/35 p-4">
+                  <Input
+                    label="Search timetable templates"
+                    icon={Search}
+                    placeholder="Search department, subject, day, or room..."
+                    value={templateQuery}
+                    onChange={(event) => setTemplateQuery(event.target.value)}
+                  />
+                </Card>
+                {filteredTemplates.map((template) => (
                   <Card key={template._id} className="border border-white/10 bg-black/45">
                     <div className="flex items-start justify-between gap-4">
                       <div>

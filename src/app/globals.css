@@ -51,6 +51,7 @@
 
 html {
   font-family: var(--font-sans);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -70,6 +71,11 @@ body {
     linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
   background-size: auto, auto, auto, auto, 64px 64px, 64px 64px;
   background-attachment: fixed;
+}
+
+#__next,
+main {
+  min-width: 0;
 }
 
 body::before {
@@ -184,6 +190,64 @@ img {
     linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.01)),
     linear-gradient(180deg, rgba(11, 17, 30, 0.96), rgba(9, 14, 24, 0.92));
   box-shadow: var(--shadow-soft);
+}
+
+.responsive-page {
+  width: 100%;
+  min-width: 0;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.responsive-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.sticky-action-band {
+  position: sticky;
+  top: 5rem;
+  z-index: 20;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 16, 25, 0.9);
+  padding: 0.55rem 0.55rem 0.55rem 1rem;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.action-grid > * {
+  min-width: 0;
+}
+
+.safe-truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 4px rgba(124, 233, 208, 0.14);
+  border-color: rgba(124, 233, 208, 0.5);
 }
 
 .section-kicker {
@@ -311,6 +375,29 @@ img {
   .glass-panel {
     backdrop-filter: blur(16px) saturate(130%);
     -webkit-backdrop-filter: blur(16px) saturate(130%);
+  }
+
+  .hero-surface {
+    border-radius: 20px;
+  }
+
+  .command-card,
+  .command-shell {
+    border-radius: 18px;
+  }
+
+  .sticky-action-band {
+    top: 4.5rem;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sticky-action-band > * {
+    width: 100%;
+  }
+
+  .action-grid {
+    grid-template-columns: 1fr;
   }
 }
 

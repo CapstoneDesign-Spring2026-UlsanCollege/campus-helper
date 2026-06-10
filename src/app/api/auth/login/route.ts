@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Account Soft-Lock System
+    // Temporary account lock after repeated failed sign-in attempts.
     if (user.lockUntil && user.lockUntil > new Date()) {
       return NextResponse.json({ error: 'Account is locked due to multiple failed attempts. Try again later.' }, { status: 403 });
     }
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Success State Reset
+    // Reset failed-attempt tracking after a successful login.
     user.failedLoginAttempts = 0;
     user.lockUntil = undefined;
 
@@ -89,6 +89,6 @@ export async function POST(req: Request) {
     });
   } catch (error: unknown) {
     console.error('Login route error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Could not sign in right now. Please try again.' }, { status: 500 });
   }
 }

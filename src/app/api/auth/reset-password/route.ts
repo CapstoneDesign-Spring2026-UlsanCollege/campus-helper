@@ -3,10 +3,24 @@ import crypto from 'crypto';
 import connectDB from '@/lib/mongoose';
 import User from '@/models/User';
 import { hashPassword } from '@/lib/auth';
+import { validateStrongPassword } from '@/lib/password-policy';
 
 export async function POST(req: Request) {
   try {
      const { token, password } = await req.json();
+
+     if (!token || typeof token !== 'string') {
+       return NextResponse.json({ error: 'Reset token is missing or invalid.' }, { status: 400 });
+     }
+
+     if (typeof password !== 'string') {
+       return NextResponse.json({ error: 'Password is required.' }, { status: 400 });
+     }
+
+     const passwordCheck = validateStrongPassword(password);
+     if (!passwordCheck.isValid) {
+       return NextResponse.json({ error: passwordCheck.issues[0] }, { status: 400 });
+     }
      
      // Reverse correlate the token against the mathematical SHA256 constraint algorithm
      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -19,7 +33,7 @@ export async function POST(req: Request) {
         resetPasswordExpires: { $gt: Date.now() }
      });
 
-     if (!user) return NextResponse.json({ error: 'Gateway Token degraded or corrupted' }, { status: 400 });
+     if (!user) return NextResponse.json({ error: 'This reset link is invalid or has expired.' }, { status: 400 });
 
      // Permutate and re-salt
      user.password = await hashPassword(password);
@@ -29,8 +43,8 @@ export async function POST(req: Request) {
      user.resetPasswordExpires = undefined;
      await user.save();
 
-     return NextResponse.json({ message: 'Decryption re-secured successfully!' });
+     return NextResponse.json({ message: 'Password reset successfully.' });
   } catch {
-     return NextResponse.json({ error: 'System processing collision occurs' }, { status: 500 });
+     return NextResponse.json({ error: 'Could not reset the password right now. Please try again.' }, { status: 500 });
   }
 }

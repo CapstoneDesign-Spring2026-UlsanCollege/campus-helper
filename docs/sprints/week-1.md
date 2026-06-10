@@ -4,7 +4,7 @@
 
 **Team Name**: AI Campus Innovators  
 **Sprint Number**: Sprint 0 (Week 1)  
-**Repository**: https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper  
+**Repository**: https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper   
 **PM for this Sprint**: Laxman Bhattarai
 
 ## Demo Script

@@ -2,7 +2,7 @@
 
 ## Team
 
-**Team Name**: AI Campus Innovators  
+**Team Name**: AI Campus Innovators   
 **Sprint Number**: Sprint 1 (Week 2)  
 **Repository**: https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper  
 **PM for this Sprint**: Rajim Danuwar

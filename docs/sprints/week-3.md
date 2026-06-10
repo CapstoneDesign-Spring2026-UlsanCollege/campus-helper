@@ -6,7 +6,7 @@
 **Sprint Number**: Sprint 2 (Week 3)  
 **Repository**: https://github.com/CapstoneDesign-Spring2026-UlsanCollege/campus-helper  
 **PM for this Sprint**: Kushal Kharka
-
+ 
 ## Demo Script
 
 1. Open Campus Helper.

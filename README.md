@@ -210,7 +210,7 @@ role: "admin"
 
 After promoting a user, log out and log back in so the JWT includes the admin role. The admin console is available at:
 
-[http://localhost:3000/dashboard/admin](http://localhost:3000/dashboard/admin)
+[http://localhost:3000/dashboard/admin](https://ulsan-campus-plus.vercel.app/dashboard/admin)
 
 ## Documentation
 
